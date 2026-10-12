@@ -1,0 +1,468 @@
+[
+  {
+    "run_id": "93ded1c2978a437aa1c8857ba89a77a5",
+    "mode": "live_llm",
+    "request": "Which products need restocking?",
+    "workflow_id": "WF001",
+    "selected_workflow": "Inventory Restock Check",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load inventory",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "product_name": "Cotton T-shirt",
+            "current_stock": "4",
+            "minimum_stock": "20"
+          },
+          {
+            "sku": "SKU-002",
+            "product_name": "Blue Mug",
+            "current_stock": "10",
+            "minimum_stock": "10"
+          },
+          {
+            "sku": "SKU-003",
+            "product_name": "Canvas Bag",
+            "current_stock": "25",
+            "minimum_stock": "15"
+          }
+        ],
+        "duration_ms": 2.971
+      },
+      {
+        "name": "Compare threshold, identify low stock and calculate reorder quantities",
+        "tool": "restock",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "products_requiring_restock": [
+            {
+              "sku": "SKU-001",
+              "product_name": "Cotton T-shirt",
+              "current_stock": 4.0,
+              "threshold": 20.0,
+              "reorder_quantity": 16.0
+            }
+          ],
+          "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
+        },
+        "duration_ms": 0.017
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user is directly asking which products need restocking, matching the trigger and intent of WF001 (Inventory Restock Check). No specific inputs or parameters were provided.",
+    "confidence": 0.95,
+    "result": {
+      "products_requiring_restock": [
+        {
+          "sku": "SKU-001",
+          "product_name": "Cotton T-shirt",
+          "current_stock": 4.0,
+          "threshold": 20.0,
+          "reorder_quantity": 16.0
+        }
+      ],
+      "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
+    },
+    "duration_ms": 25490.238
+  },
+  {
+    "run_id": "5464a022ea9a4b4ca22e859b82b72575",
+    "mode": "live_llm",
+    "request": "Find products where vendor price differs by more than 10%.",
+    "workflow_id": "WF002",
+    "selected_workflow": "Product Price Validation",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load internal product prices",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "product_name": "Cotton T-shirt",
+            "price": "120"
+          },
+          {
+            "sku": "SKU-002",
+            "product_name": "Blue Mug",
+            "price": "110"
+          },
+          {
+            "sku": "SKU-003",
+            "product_name": "Canvas Bag",
+            "price": "99"
+          },
+          {
+            "sku": "SKU-004",
+            "product_name": "Sample",
+            "price": "5"
+          },
+          {
+            "sku": "SKU-005",
+            "product_name": "Unlisted",
+            "price": "10"
+          }
+        ],
+        "duration_ms": 1.376
+      },
+      {
+        "name": "Load vendor prices",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-002",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-003",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-004",
+            "price": "0"
+          }
+        ],
+        "duration_ms": 0.661
+      },
+      {
+        "name": "Match SKU, calculate percentage difference and flag exceptions",
+        "tool": "compare_prices",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "products": [
+            {
+              "sku": "SKU-001",
+              "internal_price": 120.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 20.0,
+              "exception": true,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-002",
+              "internal_price": 110.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 10.0,
+              "exception": false,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-003",
+              "internal_price": 99.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 1.0,
+              "exception": false,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-004",
+              "status": "zero_vendor_price",
+              "exception": true,
+              "percentage_difference": null
+            },
+            {
+              "sku": "SKU-005",
+              "status": "unmatched",
+              "exception": true
+            }
+          ],
+          "exception_count": 3,
+          "denominator": "vendor price",
+          "rule": "absolute difference > 10%"
+        },
+        "duration_ms": 2.422
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The request asks to validate/find products where the vendor price differs by more than 10%, directly matching WF002 (Product Price Validation). No explicit files or parameters were provided in the prompt.",
+    "confidence": 0.95,
+    "result": {
+      "products": [
+        {
+          "sku": "SKU-001",
+          "internal_price": 120.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 20.0,
+          "exception": true,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-002",
+          "internal_price": 110.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 10.0,
+          "exception": false,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-003",
+          "internal_price": 99.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 1.0,
+          "exception": false,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-004",
+          "status": "zero_vendor_price",
+          "exception": true,
+          "percentage_difference": null
+        },
+        {
+          "sku": "SKU-005",
+          "status": "unmatched",
+          "exception": true
+        }
+      ],
+      "exception_count": 3,
+      "denominator": "vendor price",
+      "rule": "absolute difference > 10%"
+    },
+    "duration_ms": 9450.454
+  },
+  {
+    "run_id": "926c572cb5fe4d4e93eb77f6dc8896ce",
+    "mode": "live_llm",
+    "request": "Process this vendor spreadsheet and show invalid rows.",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "error",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "Gemini temporarily unavailable (HTTP 503); check quota or retry",
+    "duration_ms": 4981.827
+  },
+  {
+    "run_id": "bb19a2dbf59242559dd1f957bae046a5",
+    "mode": "live_llm",
+    "request": "Generate SEO content for this product.",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "needs_input",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "The user requested SEO product content generation, which aligns with WF004 (Product Description Generator), but did not provide the required product_name or any other product details.",
+    "duration_ms": 26019.35
+  },
+  {
+    "run_id": "cb3046e88567433f943ad200511d32a0",
+    "mode": "live_llm",
+    "request": "Where is order ORD-1001?",
+    "workflow_id": "WF005",
+    "selected_workflow": "Customer Order Status",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Validate order ID or email",
+        "tool": "validate_identifier",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "order_id": "ORD-1001",
+          "customer_email": null
+        },
+        "duration_ms": 0.866
+      },
+      {
+        "name": "Search simulated order API",
+        "tool": "lookup_orders",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "order_id": "ORD-1001",
+            "customer_email": "customer@example.com",
+            "status": "Shipped",
+            "items": [
+              {
+                "sku": "SKU-001",
+                "quantity": 2
+              }
+            ]
+          }
+        ],
+        "duration_ms": 1.447
+      },
+      {
+        "name": "Retrieve shipment information",
+        "tool": "lookup_shipments",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "order_id": "ORD-1001",
+            "customer_email": "customer@example.com",
+            "status": "Shipped",
+            "items": [
+              {
+                "sku": "SKU-001",
+                "quantity": 2
+              }
+            ],
+            "shipment": {
+              "order_id": "ORD-1001",
+              "status": "In transit",
+              "carrier": "Demo Express",
+              "tracking": "DEMO-TRACK-1001"
+            }
+          }
+        ],
+        "duration_ms": 0.49
+      },
+      {
+        "name": "Summarize order status, items and tracking",
+        "tool": "summarize_orders",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "orders": [
+            {
+              "order_id": "ORD-1001",
+              "status": "Shipped",
+              "items": [
+                {
+                  "sku": "SKU-001",
+                  "quantity": 2
+                }
+              ],
+              "shipment": {
+                "order_id": "ORD-1001",
+                "status": "In transit",
+                "carrier": "Demo Express",
+                "tracking": "DEMO-TRACK-1001"
+              }
+            }
+          ],
+          "source": "simulated order/shipment API fixtures"
+        },
+        "duration_ms": 0.012
+      }
+    ],
+    "selection_attempts": 2,
+    "selection_reason": "The user is requesting the status/location of a specific order ID (ORD-1001), which directly matches workflow WF005 (Customer Order Status).",
+    "confidence": 1.0,
+    "result": {
+      "orders": [
+        {
+          "order_id": "ORD-1001",
+          "status": "Shipped",
+          "items": [
+            {
+              "sku": "SKU-001",
+              "quantity": 2
+            }
+          ],
+          "shipment": {
+            "order_id": "ORD-1001",
+            "status": "In transit",
+            "carrier": "Demo Express",
+            "tracking": "DEMO-TRACK-1001"
+          }
+        }
+      ],
+      "source": "simulated order/shipment API fixtures"
+    },
+    "duration_ms": 19550.483
+  },
+  {
+    "run_id": "2f53f4c0b4c64496bead83209aff15ae",
+    "mode": "live_llm",
+    "request": "Find likely duplicate products in the catalog.",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "error",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "Gemini temporarily unavailable (HTTP 503); check quota or retry",
+    "duration_ms": 81909.308
+  },
+  {
+    "run_id": "c5cba2894fae4bd8a4cfe4d55d003180",
+    "mode": "live_llm",
+    "request": "Create a campaign brief for the new collection.",
+    "workflow_id": "WF007",
+    "selected_workflow": "Marketing Campaign Brief",
+    "status": "error",
+    "steps": [
+      {
+        "name": "Validate campaign goal and dates, summarize products",
+        "tool": "prepare_campaign",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "campaign_goal": "Introduce the summer collection",
+          "dates": "2026-10-15 to 2026-10-21",
+          "products": [
+            "Cotton T-shirt"
+          ],
+          "target_audience": "Adults",
+          "promotion": "10% off"
+        },
+        "duration_ms": 0.033
+      },
+      {
+        "name": "Create objective, messaging, channels, timeline and checklist",
+        "tool": "generate_campaign",
+        "status": "error",
+        "attempts": 3,
+        "duration_ms": 2345.825
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "User is asking to create a marketing campaign brief, matching WF007. No specific campaign goal, dates, or other parameters were provided.",
+    "confidence": 0.95,
+    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
+    "duration_ms": 48134.339
+  },
+  {
+    "run_id": "836d2f8b04704cbea956b0935dba5264",
+    "mode": "live_llm",
+    "request": "Classify these keywords and map them to pages.",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "error",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
+    "duration_ms": 1533.436
+  },
+  {
+    "run_id": "3e9703c0e8514312943e60d2c410fd77",
+    "mode": "live_llm",
+    "request": "Assign this urgent task to the best available developer.",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "error",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
+    "duration_ms": 1841.513
+  },
+  {
+    "run_id": "e9b8b1eaf38f4a27ab99d630baabe53b",
+    "mode": "live_llm",
+    "request": "Which workflows are failing most often?",
+    "workflow_id": null,
+    "selected_workflow": null,
+    "status": "error",
+    "steps": [],
+    "selection_attempts": 2,
+    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
+    "duration_ms": 1534.156
+  }
+]
