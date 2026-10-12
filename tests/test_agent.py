@@ -1,8 +1,10 @@
 import copy
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
+import urllib.error
 from unittest.mock import patch
 
 from agent.core import Catalog, Engine, ROOT, TOOLS, TransientError, WorkflowError
@@ -242,20 +244,61 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(r["status"], "success")
 
     def test_live_function_call_contract(self):
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-only"}):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
             live = LiveLLM()
-        call = {"tool_calls": [{"function": {"name": "execute_workflow", "arguments": json.dumps({"workflow_id": "WF001", "confidence": .95, "reason": "Restock request", "inputs": {}})}}]}
+        call = {"tool_calls": [{"function": {"name": "execute_workflow", "arguments": json.dumps({"workflow_id": "WF001", "confidence": .95, "reason": "Restock request", "inputs_json": "{}"})}}]}
         with patch.object(live, "complete", return_value=call) as complete:
             result = live.select("Restock", self.engine.catalog)
         self.assertEqual(result["workflow_id"], "WF001")
-        self.assertEqual(complete.call_args.kwargs["tool_choice"]["function"]["name"], "execute_workflow")
+        self.assertEqual(complete.call_args.kwargs["tool_choice"], "required")
+        self.assertEqual(result["inputs"], {})
 
     def test_live_bad_tool_call_rejected(self):
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-only"}):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
             live = LiveLLM()
         with patch.object(live, "complete", return_value={"tool_calls": []}):
             with self.assertRaises(WorkflowError):
                 live.select("test", self.engine.catalog)
+
+    def test_gemini_missing_key_is_clear(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaisesRegex(WorkflowError, "GEMINI_API_KEY"):
+                LiveLLM()
+
+    def test_gemini_transport_endpoint_key_and_model(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-gemini-key", "GEMINI_MODEL": "configured-model"}):
+            live = LiveLLM()
+        response = io.BytesIO(json.dumps({"choices": [{"message": {"content": "{}"}}]}).encode())
+        with patch("agent.llm.urllib.request.urlopen", return_value=response) as opened:
+            self.assertEqual(live.complete([{"role": "user", "content": "test"}]), {"content": "{}"})
+        req = opened.call_args.args[0]
+        self.assertEqual(req.full_url, "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions")
+        self.assertEqual(req.get_header("Authorization"), "Bearer fake-gemini-key")
+        self.assertEqual(json.loads(req.data)["model"], "configured-model")
+
+    def test_gemini_bad_extracted_inputs_rejected(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
+            live = LiveLLM()
+        for value in ["[]", "not json"]:
+            call = {"tool_calls": [{"function": {"name": "execute_workflow", "arguments": json.dumps({"workflow_id": "WF001", "confidence": .9, "reason": "test", "inputs_json": value})}}]}
+            with patch.object(live, "complete", return_value=call):
+                with self.assertRaises(WorkflowError):
+                    live.select("test", self.engine.catalog)
+
+    def test_gemini_empty_completion_rejected(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
+            live = LiveLLM()
+        with patch("agent.llm.urllib.request.urlopen", return_value=io.BytesIO(b'{"choices": []}')):
+            with self.assertRaisesRegex(WorkflowError, "no usable completion"):
+                live.complete([])
+
+    def test_gemini_rate_limit_is_transient(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
+            live = LiveLLM()
+        error = urllib.error.HTTPError(live.endpoint, 429, "quota", {}, None)
+        with patch("agent.llm.urllib.request.urlopen", side_effect=error):
+            with self.assertRaises(TransientError):
+                live.complete([])
 
 
 if __name__ == "__main__":

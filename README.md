@@ -19,11 +19,13 @@ Windows activation: `.venv\Scripts\activate`.
 
 ```bash
 cp .env.example .env
-# Edit .env locally and set OPENAI_API_KEY to your own key.
+# Edit .env locally and set GEMINI_API_KEY to your own key.
 python -m agent --mode live serve
 ```
 
-The key remains on the Python server; it is never sent to the browser or included in the repository. The model is configurable using `OPENAI_MODEL`. Live mode calls the OpenAI Chat Completions API with a forced `execute_workflow` function call for routing and argument extraction, then dispatches that call into the reviewed shared runtime. Product content, campaign messaging and keyword classification use the LLM. Calculations, matching, validation and execution order are deterministic Python tools.
+Create a Gemini API key at https://aistudio.google.com/apikey. The sample configuration uses `GEMINI_MODEL=gemini-3.8-flash`; set it to a text/function-calling model available to your account if needed.
+
+The key remains on the Python server; it is never sent to the browser or included in the repository. The model is configurable using `GEMINI_MODEL`. Live mode calls Google Gemini through its documented OpenAI-compatible REST endpoint, with required `execute_workflow` function calling for routing and argument extraction, then dispatches that call into the reviewed shared runtime. Requests go to `generativelanguage.googleapis.com`, not OpenAI. No OpenAI key or OpenAI Python package is needed. Extracted business inputs are encoded in a typed `inputs_json` string and parsed/validated before execution, avoiding untyped dynamic function parameters. Product content, campaign messaging and keyword classification use the LLM. Calculations, matching, validation and execution order are deterministic Python tools.
 
 **Offline demo is a test backend, not an LLM.** It uses catalog keywords and deterministic text fixtures. It works without credentials and is visibly labelled. It must not be presented as proof that live LLM integration was tested. There is no silent fallback from live to demo.
 
@@ -104,6 +106,8 @@ The local HTTP server is single-process and intended for assessment demos; it ha
 
 No change to `Engine`, the live router, CLI or UI is required. The live router's tool enum/catalog updates automatically. The test suite demonstrates an eleventh workflow using existing restock tools without changing the engine. Arbitrary natural-language Excel rows are **not** automatically compiled into trustworthy programs; reviewed bindings are an intentional safety and maintainability decision.
 
+Google API reference: https://ai.google.dev/gemini-api/docs/openai
+
 ## Repository contents
 
 ```text
@@ -121,7 +125,7 @@ docs/                   source interpretation, explanation and Loom guide
 
 ## Validation status
 
-All ten provided test requests succeeded in offline mode. **43 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Live LLM calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
+All ten provided test requests succeeded in offline mode. **48 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
 
 ## Submission
 
