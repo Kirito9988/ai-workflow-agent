@@ -28,7 +28,7 @@ class LiveLLM:
 
     def __init__(self):
         self.key = os.environ.get("GEMINI_API_KEY", "").strip()
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
+        self.model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
         self.endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
         self.timeout = number(os.environ.get("GEMINI_TIMEOUT_SECONDS", "90"), "GEMINI_TIMEOUT_SECONDS", minimum=5)
         if self.timeout > 180:

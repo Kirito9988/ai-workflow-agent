@@ -485,6 +485,14 @@ class AgentTests(unittest.TestCase):
         self.assertIn("at least one", r["message"])
         self.assertEqual(r["steps"], [])
 
+    def test_captured_results_use_portable_paths_without_mutating_run(self):
+        from agent.__main__ import portable_results
+        raw = {"file": str(ROOT / "runs" / "sample" / "keywords.csv"), "status": "success", "keywords": ["buy shirt"]}
+        captured = portable_results(raw)
+        self.assertEqual(captured["file"], "runs/sample/keywords.csv")
+        self.assertEqual(captured["keywords"], raw["keywords"])
+        self.assertTrue(raw["file"].startswith(str(ROOT)))
+
 
 if __name__ == "__main__":
     unittest.main()

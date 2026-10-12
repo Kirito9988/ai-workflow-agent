@@ -33,6 +33,18 @@ def run_examples(engine, examples):
     return outputs
 
 
+def portable_results(value, root=ROOT):
+    """Keep captured export paths relative to the project directory."""
+    if isinstance(value, dict):
+        return {key: portable_results(item, root) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable_results(item, root) for item in value]
+    prefix = str(root) + os.sep
+    if isinstance(value, str) and value.startswith(prefix):
+        return Path(value).relative_to(root).as_posix()
+    return value
+
+
 def main():
     load_env()
     parser = argparse.ArgumentParser(description="Excel workflow automation agent")
@@ -63,7 +75,7 @@ def main():
         elif args.command == "examples":
             outputs = run_examples(engine, json.loads((ROOT / "examples/requests.json").read_text()))
             target = ROOT / "examples" / ("live_results.json" if args.mode == "live" else "demo_results.json")
-            target.write_text(json.dumps(outputs, indent=2, ensure_ascii=False))
+            target.write_text(json.dumps(portable_results(outputs), indent=2, ensure_ascii=False))
             print("Results:", target)
             if any(r["status"] != "success" for r in outputs):
                 raise SystemExit(1)
