@@ -270,17 +270,56 @@ def classify_keywords(ctx, args):
     categories = ctx.inputs.get("categories")
     if not isinstance(categories, dict) or not categories or any(not isinstance(v, list) or not all(isinstance(t, str) and t for t in v) for v in categories.values()):
         raise Clarification("Provide categories as an object mapping category names to keyword arrays")
-    schema = {"type": "object", "required": ["keywords"], "properties": {"keywords": {"type": "array", "items": {"type": "object", "required": ["keyword", "intent", "category", "priority", "target_page"], "properties": {"keyword": {"type": "string"}, "intent": {"enum": ["informational", "commercial", "transactional", "navigational"]}, "category": {"enum": list(categories) + ["unmapped"]}, "priority": {"enum": ["high", "medium", "low"]}, "target_page": {"type": "string"}}}}}}
-    out = ctx.backend.generate("keywords", {"keywords": keywords, "categories": categories}, schema)
+    if not keywords:
+        ctx.state["keyword_generation_attempts"] = 0
+        return []
+    intents = ["informational", "commercial", "transactional", "navigational"]
+    allowed_categories = list(categories) + ["unmapped"]
+    schema = {"type": "object", "required": ["keywords"], "properties": {"keywords": {"type": "array", "items": {"type": "object", "required": ["keyword", "intent", "category", "priority", "target_page"], "properties": {"keyword": {"type": "string", "description": "Preserve the input keyword"}, "intent": {"type": "string", "enum": intents}, "category": {"type": "string", "enum": allowed_categories}, "priority": {"type": "string", "enum": ["high", "medium", "low"]}, "target_page": {"type": "string", "pattern": "^/(?!/)", "description": "A suggested relative website path starting with a single slash, for example /categories/clothing or /blog/shirt-care. Never return a page label or full URL."}}}}}}
+    facts = {"keywords": keywords, "categories": categories}
+    for attempt in range(2):
+        ctx.state["keyword_generation_attempts"] = attempt + 1
+        out = ctx.backend.generate("keywords", facts, schema)
+        rows, errors = validate_keyword_report(out, keywords, allowed_categories, intents)
+        if not errors:
+            return rows
+        # One bounded correction call; do not export malformed model output.
+        facts = {"keywords": keywords, "categories": categories,
+                 "correction_instruction": "Correct every listed validation error and return the complete report again. Use the exact schema enums and relative paths.",
+                 "validation_errors": errors, "previous_report": out}
+    raise WorkflowError("Keyword report invalid after 2 generation attempts: " + "; ".join(errors[:3]))
+
+
+def validate_keyword_report(out, keywords, categories, intents):
     rows = out.get("keywords") if isinstance(out, dict) else None
     if not isinstance(rows, list) or len(rows) != len(keywords):
-        raise WorkflowError("Classifier must return each unique keyword once")
+        return [], ["Return each unique keyword exactly once"]
+    if not all(isinstance(r, dict) for r in rows):
+        return [], ["Each keyword report row must be an object"]
+    errors = []
     if Counter(normalize(r.get("keyword")) for r in rows) != Counter(normalize(k) for k in keywords):
-        raise WorkflowError("Classifier changed or duplicated keyword inputs")
-    for r in rows:
-        if r.get("intent") not in ["informational", "commercial", "transactional", "navigational"] or r.get("category") not in list(categories) + ["unmapped"] or r.get("priority") not in ["high", "medium", "low"] or not isinstance(r.get("target_page"), str) or not r["target_page"].startswith("/"):
-            raise WorkflowError("Classifier returned invalid fields")
-    return rows
+        errors.append("Keyword inputs were changed, omitted or duplicated")
+    category_lookup = {normalize(c): c for c in categories}
+    for i, original in enumerate(rows, 1):
+        r = dict(original)
+        rows[i - 1] = r
+        # Canonicalize harmless casing/whitespace; unknown labels still fail validation.
+        for field in ("intent", "priority"):
+            if isinstance(r.get(field), str):
+                r[field] = normalize(r[field])
+        if isinstance(r.get("category"), str):
+            r["category"] = category_lookup.get(normalize(r["category"]), r["category"])
+        if isinstance(r.get("target_page"), str):
+            r["target_page"] = r["target_page"].strip()
+        for field, allowed in [("intent", intents), ("category", categories), ("priority", ["high", "medium", "low"])]:
+            if not isinstance(r.get(field), str) or r[field] not in allowed:
+                errors.append(f"Row {i} {field} must be one of {allowed}; got {repr(r.get(field))[:80]}")
+        if not isinstance(r.get("keyword"), str) or not r["keyword"].strip():
+            errors.append(f"Row {i} keyword must be a nonempty string")
+        page = r.get("target_page")
+        if not isinstance(page, str) or not page.startswith("/") or page.startswith("//"):
+            errors.append(f"Row {i} target_page must be a relative path such as /categories/clothing; got {repr(page)[:80]}")
+    return rows, errors
 
 
 @tool("export_keywords")
@@ -288,7 +327,7 @@ def export_keywords(ctx, args):
     rows = ctx.state[args["source"]]
     path = ctx.run_dir / "keywords.csv"
     write_csv(path, rows, ["keyword", "intent", "category", "priority", "target_page"])
-    return {"keywords": rows, "file": str(path)}
+    return {"keywords": rows, "file": str(path), "generation_attempts": ctx.state.get("keyword_generation_attempts", 1)}
 
 
 @tool("rank_employees")

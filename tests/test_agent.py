@@ -374,6 +374,50 @@ class AgentTests(unittest.TestCase):
             live.complete([])
         sleep.assert_called_once_with(5)
 
+    def test_keyword_report_corrects_invalid_page_once(self):
+        e = self.examples[7]
+        keywords = ["buy cotton shirt", "best cotton shirt", "how to wash cotton shirt", "Brand official website", "blue mug discount"]
+        valid = self.engine.backend.generate("keywords", {"keywords": keywords, "categories": e["inputs"]["categories"]}, {})
+        invalid = copy.deepcopy(valid)
+        invalid["keywords"][0]["target_page"] = "Product page"
+        with patch.object(self.engine.backend, "generate", side_effect=[invalid, valid]) as generate:
+            r = self.run_example(8)
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(generate.call_count, 2)
+        correction = generate.call_args.args[1]
+        self.assertIn("target_page", correction["validation_errors"][0])
+        self.assertEqual(r["result"]["generation_attempts"], 2)
+
+    def test_keyword_report_error_identifies_field_after_bounded_correction(self):
+        valid = self.run_example(8)["result"]["keywords"]
+        invalid = {"keywords": copy.deepcopy(valid)}
+        invalid["keywords"][0]["intent"] = "purchase"
+        with patch.object(self.engine.backend, "generate", return_value=invalid) as generate:
+            r = self.run_example(8)
+        self.assertEqual(r["status"], "error")
+        self.assertEqual(generate.call_count, 2)
+        self.assertIn("Row 1 intent", r["message"])
+        self.assertIn("purchase", r["message"])
+
+    def test_keyword_enum_casing_is_normalized(self):
+        valid = self.run_example(8)["result"]["keywords"]
+        for row in valid:
+            row["intent"] = " " + row["intent"].upper() + " "
+            row["priority"] = row["priority"].capitalize()
+            row["category"] = row["category"].upper()
+        with patch.object(self.engine.backend, "generate", return_value={"keywords": valid}) as generate:
+            r = self.run_example(8)
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(generate.call_count, 1)
+
+    def test_keyword_report_rejects_protocol_relative_pages(self):
+        rows = self.run_example(8)["result"]["keywords"]
+        rows[0]["target_page"] = "//outside.example/page"
+        with patch.object(self.engine.backend, "generate", return_value={"keywords": rows}):
+            r = self.run_example(8)
+        self.assertEqual(r["status"], "error")
+        self.assertIn("target_page", r["message"])
+
 
 if __name__ == "__main__":
     unittest.main()
