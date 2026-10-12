@@ -1,0 +1,89 @@
+[
+  {
+    "workflow_id": "WF001",
+    "request": "Which products need restocking?",
+    "inputs": {}
+  },
+  {
+    "workflow_id": "WF002",
+    "request": "Find products where vendor price differs by more than 10%.",
+    "inputs": {}
+  },
+  {
+    "workflow_id": "WF003",
+    "request": "Process this vendor spreadsheet and show invalid rows.",
+    "inputs": {
+      "file": "vendor.csv"
+    }
+  },
+  {
+    "workflow_id": "WF004",
+    "request": "Generate SEO content for this product.",
+    "inputs": {
+      "product_name": "Cotton T-shirt",
+      "category": "clothing",
+      "material": "cotton",
+      "color": "white",
+      "target_audience": "adults",
+      "attributes": [
+        "round neck"
+      ]
+    }
+  },
+  {
+    "workflow_id": "WF005",
+    "request": "Where is order ORD-1001?",
+    "inputs": {}
+  },
+  {
+    "workflow_id": "WF006",
+    "request": "Find likely duplicate products in the catalog.",
+    "inputs": {}
+  },
+  {
+    "workflow_id": "WF007",
+    "request": "Create a campaign brief for the new collection.",
+    "inputs": {
+      "campaign_goal": "Introduce the summer collection",
+      "dates": "2026-10-15 to 2026-10-21",
+      "products": [
+        "Cotton T-shirt"
+      ],
+      "target_audience": "Adults",
+      "promotion": "10% off"
+    }
+  },
+  {
+    "workflow_id": "WF008",
+    "request": "Classify these keywords and map them to pages.",
+    "inputs": {
+      "categories": {
+        "clothing": [
+          "shirt",
+          "cotton"
+        ],
+        "home": [
+          "mug"
+        ]
+      }
+    }
+  },
+  {
+    "workflow_id": "WF009",
+    "request": "Assign this urgent task to the best available developer.",
+    "inputs": {
+      "task_description": "Build a Python API integration",
+      "required_skills": [
+        "python",
+        "api"
+      ],
+      "priority": "urgent",
+      "deadline": "2026-10-14"
+    }
+  },
+  {
+    "workflow_id": "WF010",
+    "request": "Which workflows are failing most often?",
+    "inputs": {}
+  }
+]

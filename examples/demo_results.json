@@ -1,0 +1,1773 @@
+[
+  {
+    "run_id": "7a202cd0bcb24f42856c08a4331a7c59",
+    "mode": "offline_demo",
+    "request": "Which products need restocking?",
+    "workflow_id": "WF001",
+    "selected_workflow": "Inventory Restock Check",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load inventory",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "product_name": "Cotton T-shirt",
+            "current_stock": "4",
+            "minimum_stock": "20"
+          },
+          {
+            "sku": "SKU-002",
+            "product_name": "Blue Mug",
+            "current_stock": "10",
+            "minimum_stock": "10"
+          },
+          {
+            "sku": "SKU-003",
+            "product_name": "Canvas Bag",
+            "current_stock": "25",
+            "minimum_stock": "15"
+          }
+        ],
+        "duration_ms": 0.181
+      },
+      {
+        "name": "Compare threshold, identify low stock and calculate reorder quantities",
+        "tool": "restock",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "products_requiring_restock": [
+            {
+              "sku": "SKU-001",
+              "product_name": "Cotton T-shirt",
+              "current_stock": 4.0,
+              "threshold": 20.0,
+              "reorder_quantity": 16.0
+            }
+          ],
+          "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
+        },
+        "duration_ms": 0.008
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "products_requiring_restock": [
+        {
+          "sku": "SKU-001",
+          "product_name": "Cotton T-shirt",
+          "current_stock": 4.0,
+          "threshold": 20.0,
+          "reorder_quantity": 16.0
+        }
+      ],
+      "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
+    },
+    "duration_ms": 1.338
+  },
+  {
+    "run_id": "13d4d846b60946609422d6f788d106aa",
+    "mode": "offline_demo",
+    "request": "Find products where vendor price differs by more than 10%.",
+    "workflow_id": "WF002",
+    "selected_workflow": "Product Price Validation",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load internal product prices",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "product_name": "Cotton T-shirt",
+            "price": "120"
+          },
+          {
+            "sku": "SKU-002",
+            "product_name": "Blue Mug",
+            "price": "110"
+          },
+          {
+            "sku": "SKU-003",
+            "product_name": "Canvas Bag",
+            "price": "99"
+          },
+          {
+            "sku": "SKU-004",
+            "product_name": "Sample",
+            "price": "5"
+          },
+          {
+            "sku": "SKU-005",
+            "product_name": "Unlisted",
+            "price": "10"
+          }
+        ],
+        "duration_ms": 0.109
+      },
+      {
+        "name": "Load vendor prices",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "SKU-001",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-002",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-003",
+            "price": "100"
+          },
+          {
+            "sku": "SKU-004",
+            "price": "0"
+          }
+        ],
+        "duration_ms": 0.076
+      },
+      {
+        "name": "Match SKU, calculate percentage difference and flag exceptions",
+        "tool": "compare_prices",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "products": [
+            {
+              "sku": "SKU-001",
+              "internal_price": 120.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 20.0,
+              "exception": true,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-002",
+              "internal_price": 110.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 10.0,
+              "exception": false,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-003",
+              "internal_price": 99.0,
+              "vendor_price": 100.0,
+              "percentage_difference": 1.0,
+              "exception": false,
+              "status": "matched"
+            },
+            {
+              "sku": "SKU-004",
+              "status": "zero_vendor_price",
+              "exception": true,
+              "percentage_difference": null
+            },
+            {
+              "sku": "SKU-005",
+              "status": "unmatched",
+              "exception": true
+            }
+          ],
+          "exception_count": 3,
+          "denominator": "vendor price",
+          "rule": "absolute difference > 10%"
+        },
+        "duration_ms": 0.202
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "products": [
+        {
+          "sku": "SKU-001",
+          "internal_price": 120.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 20.0,
+          "exception": true,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-002",
+          "internal_price": 110.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 10.0,
+          "exception": false,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-003",
+          "internal_price": 99.0,
+          "vendor_price": 100.0,
+          "percentage_difference": 1.0,
+          "exception": false,
+          "status": "matched"
+        },
+        {
+          "sku": "SKU-004",
+          "status": "zero_vendor_price",
+          "exception": true,
+          "percentage_difference": null
+        },
+        {
+          "sku": "SKU-005",
+          "status": "unmatched",
+          "exception": true
+        }
+      ],
+      "exception_count": 3,
+      "denominator": "vendor price",
+      "rule": "absolute difference > 10%"
+    },
+    "duration_ms": 0.642
+  },
+  {
+    "run_id": "613cad26f9134398a0fcadc0a672c9ca",
+    "mode": "offline_demo",
+    "request": "Process this vendor spreadsheet and show invalid rows.",
+    "workflow_id": "WF003",
+    "selected_workflow": "Vendor File Processing",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Read vendor file",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "Product SKU": "  V001 ",
+            "Product Name": " Linen Shirt ",
+            "Color": "White"
+          },
+          {
+            "Product SKU": "",
+            "Product Name": "Broken entry",
+            "Color": "Blue"
+          },
+          {
+            "Product SKU": "V003",
+            "Product Name": "",
+            "Color": "Black"
+          }
+        ],
+        "duration_ms": 0.081
+      },
+      {
+        "name": "Detect and normalize column names",
+        "tool": "normalize_columns",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "V001",
+            "product_name": "Linen Shirt",
+            "color": "White"
+          },
+          {
+            "sku": "",
+            "product_name": "Broken entry",
+            "color": "Blue"
+          },
+          {
+            "sku": "V003",
+            "product_name": "",
+            "color": "Black"
+          }
+        ],
+        "duration_ms": 0.073
+      },
+      {
+        "name": "Validate fields and split invalid rows",
+        "tool": "validate_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "cleaned": [
+            {
+              "sku": "V001",
+              "product_name": "Linen Shirt",
+              "color": "White"
+            }
+          ],
+          "invalid_rows": [
+            {
+              "row_number": 3,
+              "missing_fields": [
+                "sku"
+              ],
+              "data": {
+                "sku": "",
+                "product_name": "Broken entry",
+                "color": "Blue"
+              }
+            },
+            {
+              "row_number": 4,
+              "missing_fields": [
+                "product_name"
+              ],
+              "data": {
+                "sku": "V003",
+                "product_name": "",
+                "color": "Black"
+              }
+            }
+          ],
+          "total_rows": 3,
+          "valid_count": 1,
+          "invalid_count": 2
+        },
+        "duration_ms": 0.042
+      },
+      {
+        "name": "Export cleaned dataset and invalid-row report",
+        "tool": "export_validation",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "cleaned": [
+            {
+              "sku": "V001",
+              "product_name": "Linen Shirt",
+              "color": "White"
+            }
+          ],
+          "invalid_rows": [
+            {
+              "row_number": 3,
+              "missing_fields": [
+                "sku"
+              ],
+              "data": {
+                "sku": "",
+                "product_name": "Broken entry",
+                "color": "Blue"
+              }
+            },
+            {
+              "row_number": 4,
+              "missing_fields": [
+                "product_name"
+              ],
+              "data": {
+                "sku": "V003",
+                "product_name": "",
+                "color": "Black"
+              }
+            }
+          ],
+          "total_rows": 3,
+          "valid_count": 1,
+          "invalid_count": 2,
+          "files": [
+            "./runs/613cad26f9134398a0fcadc0a672c9ca/cleaned.csv",
+            "./runs/613cad26f9134398a0fcadc0a672c9ca/invalid_rows.json"
+          ]
+        },
+        "duration_ms": 0.26
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "cleaned": [
+        {
+          "sku": "V001",
+          "product_name": "Linen Shirt",
+          "color": "White"
+        }
+      ],
+      "invalid_rows": [
+        {
+          "row_number": 3,
+          "missing_fields": [
+            "sku"
+          ],
+          "data": {
+            "sku": "",
+            "product_name": "Broken entry",
+            "color": "Blue"
+          }
+        },
+        {
+          "row_number": 4,
+          "missing_fields": [
+            "product_name"
+          ],
+          "data": {
+            "sku": "V003",
+            "product_name": "",
+            "color": "Black"
+          }
+        }
+      ],
+      "total_rows": 3,
+      "valid_count": 1,
+      "invalid_count": 2,
+      "files": [
+        "./runs/613cad26f9134398a0fcadc0a672c9ca/cleaned.csv",
+        "./runs/613cad26f9134398a0fcadc0a672c9ca/invalid_rows.json"
+      ]
+    },
+    "duration_ms": 0.626
+  },
+  {
+    "run_id": "7dc7f22cb80144468370a547296ce7c7",
+    "mode": "offline_demo",
+    "request": "Generate SEO content for this product.",
+    "workflow_id": "WF004",
+    "selected_workflow": "Product Description Generator",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Validate attributes and record missing information",
+        "tool": "prepare_content",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "facts": {
+            "product_name": "Cotton T-shirt",
+            "category": "clothing",
+            "attributes": [
+              "round neck"
+            ],
+            "material": "cotton",
+            "color": "white",
+            "target_audience": "adults"
+          },
+          "missing_information": []
+        },
+        "duration_ms": 0.007
+      },
+      {
+        "name": "Generate description, short description, SEO title and meta",
+        "tool": "generate_content",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "description": "Cotton T-shirt. category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+          "short_description": "Cotton T-shirt: category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+          "seo_title": "Cotton T-shirt",
+          "meta_description": "Explore Cotton T-shirt. category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+          "missing_information": [],
+          "review_note": "Review generated prose for factual accuracy before publishing"
+        },
+        "duration_ms": 0.016
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "description": "Cotton T-shirt. category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+      "short_description": "Cotton T-shirt: category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+      "seo_title": "Cotton T-shirt",
+      "meta_description": "Explore Cotton T-shirt. category: clothing; attributes: ['round neck']; material: cotton; color: white; target_audience: adults.",
+      "missing_information": [],
+      "review_note": "Review generated prose for factual accuracy before publishing"
+    },
+    "duration_ms": 0.194
+  },
+  {
+    "run_id": "9d7622f8531a4f3684e4ab4ff1bfea7a",
+    "mode": "offline_demo",
+    "request": "Where is order ORD-1001?",
+    "workflow_id": "WF005",
+    "selected_workflow": "Customer Order Status",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Validate order ID or email",
+        "tool": "validate_identifier",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "order_id": "ORD-1001",
+          "customer_email": null
+        },
+        "duration_ms": 0.196
+      },
+      {
+        "name": "Search simulated order API",
+        "tool": "lookup_orders",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "order_id": "ORD-1001",
+            "customer_email": "customer@example.com",
+            "status": "Shipped",
+            "items": [
+              {
+                "sku": "SKU-001",
+                "quantity": 2
+              }
+            ]
+          }
+        ],
+        "duration_ms": 0.104
+      },
+      {
+        "name": "Retrieve shipment information",
+        "tool": "lookup_shipments",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "order_id": "ORD-1001",
+            "customer_email": "customer@example.com",
+            "status": "Shipped",
+            "items": [
+              {
+                "sku": "SKU-001",
+                "quantity": 2
+              }
+            ],
+            "shipment": {
+              "order_id": "ORD-1001",
+              "status": "In transit",
+              "carrier": "Demo Express",
+              "tracking": "DEMO-TRACK-1001"
+            }
+          }
+        ],
+        "duration_ms": 0.154
+      },
+      {
+        "name": "Summarize order status, items and tracking",
+        "tool": "summarize_orders",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "orders": [
+            {
+              "order_id": "ORD-1001",
+              "status": "Shipped",
+              "items": [
+                {
+                  "sku": "SKU-001",
+                  "quantity": 2
+                }
+              ],
+              "shipment": {
+                "order_id": "ORD-1001",
+                "status": "In transit",
+                "carrier": "Demo Express",
+                "tracking": "DEMO-TRACK-1001"
+              }
+            }
+          ],
+          "source": "simulated order/shipment API fixtures"
+        },
+        "duration_ms": 0.003
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "orders": [
+        {
+          "order_id": "ORD-1001",
+          "status": "Shipped",
+          "items": [
+            {
+              "sku": "SKU-001",
+              "quantity": 2
+            }
+          ],
+          "shipment": {
+            "order_id": "ORD-1001",
+            "status": "In transit",
+            "carrier": "Demo Express",
+            "tracking": "DEMO-TRACK-1001"
+          }
+        }
+      ],
+      "source": "simulated order/shipment API fixtures"
+    },
+    "duration_ms": 0.591
+  },
+  {
+    "run_id": "d7c7fc7b1c4b40f9980aa0e9784b04b9",
+    "mode": "offline_demo",
+    "request": "Find likely duplicate products in the catalog.",
+    "workflow_id": "WF006",
+    "selected_workflow": "Duplicate Product Detection",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load product catalog",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "A1",
+            "product_name": "Cotton T-Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": " a1 ",
+            "product_name": "Cotton Tee",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": "A2",
+            "product_name": "Cotton T Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": "B1",
+            "product_name": "Steel Bottle",
+            "category": "accessories",
+            "material": "steel",
+            "color": "blue"
+          }
+        ],
+        "duration_ms": 0.077
+      },
+      {
+        "name": "Normalize product names and SKUs",
+        "tool": "normalize_products",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "A1",
+            "product_name": "Cotton T-Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a1",
+            "normalized_name": "cotton t-shirt"
+          },
+          {
+            "sku": " a1 ",
+            "product_name": "Cotton Tee",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a1",
+            "normalized_name": "cotton tee"
+          },
+          {
+            "sku": "A2",
+            "product_name": "Cotton T Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a2",
+            "normalized_name": "cotton t shirt"
+          },
+          {
+            "sku": "B1",
+            "product_name": "Steel Bottle",
+            "category": "accessories",
+            "material": "steel",
+            "color": "blue",
+            "normalized_sku": "b1",
+            "normalized_name": "steel bottle"
+          }
+        ],
+        "duration_ms": 0.013
+      },
+      {
+        "name": "Compare identifiers and attributes, group duplicates and assign confidence",
+        "tool": "duplicate_groups",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "duplicate_groups": [
+            {
+              "products": [
+                {
+                  "row_number": 2,
+                  "sku": "A1",
+                  "product_name": "Cotton T-Shirt"
+                },
+                {
+                  "row_number": 3,
+                  "sku": " a1 ",
+                  "product_name": "Cotton Tee"
+                },
+                {
+                  "row_number": 4,
+                  "sku": "A2",
+                  "product_name": "Cotton T Shirt"
+                }
+              ],
+              "pair_evidence": [
+                {
+                  "rows": [
+                    2,
+                    3
+                  ],
+                  "matching_fields": [
+                    "sku"
+                  ],
+                  "confidence": 1,
+                  "level": "definite"
+                },
+                {
+                  "rows": [
+                    2,
+                    4
+                  ],
+                  "matching_fields": [
+                    "product_name",
+                    "category",
+                    "material",
+                    "color"
+                  ],
+                  "confidence": 0.929,
+                  "level": "possible"
+                }
+              ],
+              "confidence": 0.929,
+              "level": "possible"
+            }
+          ],
+          "note": "Similarity groups are connected candidate pairs; review before merging"
+        },
+        "duration_ms": 0.159
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "duplicate_groups": [
+        {
+          "products": [
+            {
+              "row_number": 2,
+              "sku": "A1",
+              "product_name": "Cotton T-Shirt"
+            },
+            {
+              "row_number": 3,
+              "sku": " a1 ",
+              "product_name": "Cotton Tee"
+            },
+            {
+              "row_number": 4,
+              "sku": "A2",
+              "product_name": "Cotton T Shirt"
+            }
+          ],
+          "pair_evidence": [
+            {
+              "rows": [
+                2,
+                3
+              ],
+              "matching_fields": [
+                "sku"
+              ],
+              "confidence": 1,
+              "level": "definite"
+            },
+            {
+              "rows": [
+                2,
+                4
+              ],
+              "matching_fields": [
+                "product_name",
+                "category",
+                "material",
+                "color"
+              ],
+              "confidence": 0.929,
+              "level": "possible"
+            }
+          ],
+          "confidence": 0.929,
+          "level": "possible"
+        }
+      ],
+      "note": "Similarity groups are connected candidate pairs; review before merging"
+    },
+    "duration_ms": 0.388
+  },
+  {
+    "run_id": "9acb0febff4749afbda562a266b4f552",
+    "mode": "offline_demo",
+    "request": "Create a campaign brief for the new collection.",
+    "workflow_id": "WF007",
+    "selected_workflow": "Marketing Campaign Brief",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Validate campaign goal and dates, summarize products",
+        "tool": "prepare_campaign",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "campaign_goal": "Introduce the summer collection",
+          "dates": "2026-10-15 to 2026-10-21",
+          "products": [
+            "Cotton T-shirt"
+          ],
+          "target_audience": "Adults",
+          "promotion": "10% off"
+        },
+        "duration_ms": 0.004
+      },
+      {
+        "name": "Create objective, messaging, channels, timeline and checklist",
+        "tool": "generate_campaign",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "objective": "Introduce the summer collection",
+          "audience": "Adults",
+          "products": [
+            "Cotton T-shirt"
+          ],
+          "messaging": "Explore the collection — 10% off",
+          "channels": [
+            "Email",
+            "Social media"
+          ],
+          "timeline": "2026-10-15 to 2026-10-21",
+          "checklist": [
+            "Confirm product details",
+            "Approve creative",
+            "Schedule content",
+            "Measure results"
+          ],
+          "missing_information": []
+        },
+        "duration_ms": 0.013
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "objective": "Introduce the summer collection",
+      "audience": "Adults",
+      "products": [
+        "Cotton T-shirt"
+      ],
+      "messaging": "Explore the collection — 10% off",
+      "channels": [
+        "Email",
+        "Social media"
+      ],
+      "timeline": "2026-10-15 to 2026-10-21",
+      "checklist": [
+        "Confirm product details",
+        "Approve creative",
+        "Schedule content",
+        "Measure results"
+      ],
+      "missing_information": []
+    },
+    "duration_ms": 0.159
+  },
+  {
+    "run_id": "491f0d2b40dd402c82a84edc80964dd7",
+    "mode": "offline_demo",
+    "request": "Classify these keywords and map them to pages.",
+    "workflow_id": "WF008",
+    "selected_workflow": "SEO Keyword Classification",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Read keyword list",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "keyword": "buy cotton shirt"
+          },
+          {
+            "keyword": "best cotton shirt"
+          },
+          {
+            "keyword": "how to wash cotton shirt"
+          },
+          {
+            "keyword": "Brand official website"
+          },
+          {
+            "keyword": " Buy Cotton Shirt "
+          },
+          {
+            "keyword": "blue mug discount"
+          }
+        ],
+        "duration_ms": 0.134
+      },
+      {
+        "name": "Remove duplicate and empty keywords",
+        "tool": "deduplicate_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          "buy cotton shirt",
+          "best cotton shirt",
+          "how to wash cotton shirt",
+          "Brand official website",
+          "blue mug discount"
+        ],
+        "duration_ms": 0.015
+      },
+      {
+        "name": "Classify intent, map categories, prioritize and recommend target pages",
+        "tool": "classify_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "keyword": "buy cotton shirt",
+            "intent": "transactional",
+            "category": "clothing",
+            "priority": "high",
+            "target_page": "/categories/clothing"
+          },
+          {
+            "keyword": "best cotton shirt",
+            "intent": "commercial",
+            "category": "clothing",
+            "priority": "high",
+            "target_page": "/categories/clothing"
+          },
+          {
+            "keyword": "how to wash cotton shirt",
+            "intent": "informational",
+            "category": "clothing",
+            "priority": "medium",
+            "target_page": "/blog/how-to-wash-cotton-shirt"
+          },
+          {
+            "keyword": "Brand official website",
+            "intent": "navigational",
+            "category": "unmapped",
+            "priority": "medium",
+            "target_page": "/categories/unmapped"
+          },
+          {
+            "keyword": "blue mug discount",
+            "intent": "transactional",
+            "category": "home",
+            "priority": "high",
+            "target_page": "/categories/home"
+          }
+        ],
+        "duration_ms": 0.12
+      },
+      {
+        "name": "Export keyword report",
+        "tool": "export_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "keywords": [
+            {
+              "keyword": "buy cotton shirt",
+              "intent": "transactional",
+              "category": "clothing",
+              "priority": "high",
+              "target_page": "/categories/clothing"
+            },
+            {
+              "keyword": "best cotton shirt",
+              "intent": "commercial",
+              "category": "clothing",
+              "priority": "high",
+              "target_page": "/categories/clothing"
+            },
+            {
+              "keyword": "how to wash cotton shirt",
+              "intent": "informational",
+              "category": "clothing",
+              "priority": "medium",
+              "target_page": "/blog/how-to-wash-cotton-shirt"
+            },
+            {
+              "keyword": "Brand official website",
+              "intent": "navigational",
+              "category": "unmapped",
+              "priority": "medium",
+              "target_page": "/categories/unmapped"
+            },
+            {
+              "keyword": "blue mug discount",
+              "intent": "transactional",
+              "category": "home",
+              "priority": "high",
+              "target_page": "/categories/home"
+            }
+          ],
+          "file": "./runs/491f0d2b40dd402c82a84edc80964dd7/keywords.csv"
+        },
+        "duration_ms": 0.077
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "keywords": [
+        {
+          "keyword": "buy cotton shirt",
+          "intent": "transactional",
+          "category": "clothing",
+          "priority": "high",
+          "target_page": "/categories/clothing"
+        },
+        {
+          "keyword": "best cotton shirt",
+          "intent": "commercial",
+          "category": "clothing",
+          "priority": "high",
+          "target_page": "/categories/clothing"
+        },
+        {
+          "keyword": "how to wash cotton shirt",
+          "intent": "informational",
+          "category": "clothing",
+          "priority": "medium",
+          "target_page": "/blog/how-to-wash-cotton-shirt"
+        },
+        {
+          "keyword": "Brand official website",
+          "intent": "navigational",
+          "category": "unmapped",
+          "priority": "medium",
+          "target_page": "/categories/unmapped"
+        },
+        {
+          "keyword": "blue mug discount",
+          "intent": "transactional",
+          "category": "home",
+          "priority": "high",
+          "target_page": "/categories/home"
+        }
+      ],
+      "file": "./runs/491f0d2b40dd402c82a84edc80964dd7/keywords.csv"
+    },
+    "duration_ms": 0.476
+  },
+  {
+    "run_id": "92239c75c93b43878e330684ba6775cd",
+    "mode": "offline_demo",
+    "request": "Assign this urgent task to the best available developer.",
+    "workflow_id": "WF009",
+    "selected_workflow": "Employee Task Assignment",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load employee skills and workload",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "employee_id": "E01",
+            "name": "Asha",
+            "skills": "python;api;sql",
+            "workload": "3",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E02",
+            "name": "Rohan",
+            "skills": "python;api",
+            "workload": "5",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E03",
+            "name": "Neha",
+            "skills": "react;css",
+            "workload": "1",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E04",
+            "name": "Dev",
+            "skills": "python;api;sql",
+            "workload": "1",
+            "capacity": "5"
+          }
+        ],
+        "duration_ms": 0.096
+      },
+      {
+        "name": "Compare required skills, check capacity and rank candidates",
+        "tool": "rank_employees",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "employee_id": "E04",
+            "name": "Dev",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 4.0,
+            "eligible": true
+          },
+          {
+            "employee_id": "E01",
+            "name": "Asha",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 2.0,
+            "eligible": true
+          },
+          {
+            "employee_id": "E02",
+            "name": "Rohan",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 0.0,
+            "eligible": false
+          },
+          {
+            "employee_id": "E03",
+            "name": "Neha",
+            "matched_skills": [],
+            "missing_skills": [
+              "api",
+              "python"
+            ],
+            "available_capacity": 4.0,
+            "eligible": false
+          }
+        ],
+        "duration_ms": 0.118
+      },
+      {
+        "name": "Recommend employee or escalate; generate assignment summary",
+        "tool": "recommend_assignment",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "escalated": false,
+          "recommended_employee": {
+            "employee_id": "E04",
+            "name": "Dev",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 4.0,
+            "eligible": true
+          },
+          "reason": "All required skills match; greatest available capacity among eligible employees",
+          "priority": "urgent",
+          "deadline": "2026-10-14",
+          "task_summary": "Build a Python API integration",
+          "candidates": [
+            {
+              "employee_id": "E04",
+              "name": "Dev",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 4.0,
+              "eligible": true
+            },
+            {
+              "employee_id": "E01",
+              "name": "Asha",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 2.0,
+              "eligible": true
+            },
+            {
+              "employee_id": "E02",
+              "name": "Rohan",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 0.0,
+              "eligible": false
+            },
+            {
+              "employee_id": "E03",
+              "name": "Neha",
+              "matched_skills": [],
+              "missing_skills": [
+                "api",
+                "python"
+              ],
+              "available_capacity": 4.0,
+              "eligible": false
+            }
+          ],
+          "action": "recommendation only; task database not modified"
+        },
+        "duration_ms": 0.004
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "escalated": false,
+      "recommended_employee": {
+        "employee_id": "E04",
+        "name": "Dev",
+        "matched_skills": [
+          "api",
+          "python"
+        ],
+        "missing_skills": [],
+        "available_capacity": 4.0,
+        "eligible": true
+      },
+      "reason": "All required skills match; greatest available capacity among eligible employees",
+      "priority": "urgent",
+      "deadline": "2026-10-14",
+      "task_summary": "Build a Python API integration",
+      "candidates": [
+        {
+          "employee_id": "E04",
+          "name": "Dev",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 4.0,
+          "eligible": true
+        },
+        {
+          "employee_id": "E01",
+          "name": "Asha",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 2.0,
+          "eligible": true
+        },
+        {
+          "employee_id": "E02",
+          "name": "Rohan",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 0.0,
+          "eligible": false
+        },
+        {
+          "employee_id": "E03",
+          "name": "Neha",
+          "matched_skills": [],
+          "missing_skills": [
+            "api",
+            "python"
+          ],
+          "available_capacity": 4.0,
+          "eligible": false
+        }
+      ],
+      "action": "recommendation only; task database not modified"
+    },
+    "duration_ms": 0.443
+  },
+  {
+    "run_id": "d7dca6e0ddbe4bfdbf040340b0b22dcf",
+    "mode": "offline_demo",
+    "request": "Which workflows are failing most often?",
+    "workflow_id": "WF010",
+    "selected_workflow": "Workflow Performance Report",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load execution logs",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "workflow_id": "WF001",
+            "status": "failure",
+            "duration_ms": 500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "failure",
+            "duration_ms": 1500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "failure",
+            "duration_ms": 1500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          }
+        ],
+        "duration_ms": 0.087
+      },
+      {
+        "name": "Calculate rates, execution times, errors and slow steps; flag problems",
+        "tool": "performance_metrics",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "workflows": [
+            {
+              "workflow_id": "WF001",
+              "execution_count": 10,
+              "completed_count": 10,
+              "needs_input_count": 0,
+              "failure_rate": 0.1,
+              "success_rate": 0.9,
+              "average_execution_ms": 500.0,
+              "frequent_errors": {
+                "upstream_timeout": 1
+              },
+              "slow_steps": [],
+              "flagged": false
+            },
+            {
+              "workflow_id": "WF002",
+              "execution_count": 5,
+              "completed_count": 5,
+              "needs_input_count": 0,
+              "failure_rate": 0.4,
+              "success_rate": 0.6,
+              "average_execution_ms": 1500.0,
+              "frequent_errors": {
+                "upstream_timeout": 2
+              },
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1500.0
+                }
+              ],
+              "flagged": true
+            },
+            {
+              "workflow_id": "WF004",
+              "execution_count": 4,
+              "completed_count": 4,
+              "needs_input_count": 0,
+              "failure_rate": 0.0,
+              "success_rate": 1.0,
+              "average_execution_ms": 1200.0,
+              "frequent_errors": {},
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1200.0
+                }
+              ],
+              "flagged": true
+            }
+          ],
+          "slow_threshold_ms": 1000.0,
+          "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded"
+        },
+        "duration_ms": 0.069
+      },
+      {
+        "name": "Generate improvement recommendations",
+        "tool": "performance_recommendations",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "workflows": [
+            {
+              "workflow_id": "WF001",
+              "execution_count": 10,
+              "completed_count": 10,
+              "needs_input_count": 0,
+              "failure_rate": 0.1,
+              "success_rate": 0.9,
+              "average_execution_ms": 500.0,
+              "frequent_errors": {
+                "upstream_timeout": 1
+              },
+              "slow_steps": [],
+              "flagged": false
+            },
+            {
+              "workflow_id": "WF002",
+              "execution_count": 5,
+              "completed_count": 5,
+              "needs_input_count": 0,
+              "failure_rate": 0.4,
+              "success_rate": 0.6,
+              "average_execution_ms": 1500.0,
+              "frequent_errors": {
+                "upstream_timeout": 2
+              },
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1500.0
+                }
+              ],
+              "flagged": true
+            },
+            {
+              "workflow_id": "WF004",
+              "execution_count": 4,
+              "completed_count": 4,
+              "needs_input_count": 0,
+              "failure_rate": 0.0,
+              "success_rate": 1.0,
+              "average_execution_ms": 1200.0,
+              "frequent_errors": {},
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1200.0
+                }
+              ],
+              "flagged": true
+            }
+          ],
+          "slow_threshold_ms": 1000.0,
+          "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded",
+          "recommendations": [
+            {
+              "workflow_id": "WF002",
+              "actions": [
+                "Investigate frequent errors: upstream_timeout",
+                "Profile slow tools; consider caching or batching"
+              ]
+            },
+            {
+              "workflow_id": "WF004",
+              "actions": [
+                "Profile slow tools; consider caching or batching"
+              ]
+            }
+          ]
+        },
+        "duration_ms": 0.005
+      }
+    ],
+    "selection_reason": "Offline catalog keyword match; live mode uses LLM function calling",
+    "confidence": 0.9,
+    "result": {
+      "workflows": [
+        {
+          "workflow_id": "WF001",
+          "execution_count": 10,
+          "completed_count": 10,
+          "needs_input_count": 0,
+          "failure_rate": 0.1,
+          "success_rate": 0.9,
+          "average_execution_ms": 500.0,
+          "frequent_errors": {
+            "upstream_timeout": 1
+          },
+          "slow_steps": [],
+          "flagged": false
+        },
+        {
+          "workflow_id": "WF002",
+          "execution_count": 5,
+          "completed_count": 5,
+          "needs_input_count": 0,
+          "failure_rate": 0.4,
+          "success_rate": 0.6,
+          "average_execution_ms": 1500.0,
+          "frequent_errors": {
+            "upstream_timeout": 2
+          },
+          "slow_steps": [
+            {
+              "name": "fetch_data",
+              "average_ms": 1500.0
+            }
+          ],
+          "flagged": true
+        },
+        {
+          "workflow_id": "WF004",
+          "execution_count": 4,
+          "completed_count": 4,
+          "needs_input_count": 0,
+          "failure_rate": 0.0,
+          "success_rate": 1.0,
+          "average_execution_ms": 1200.0,
+          "frequent_errors": {},
+          "slow_steps": [
+            {
+              "name": "fetch_data",
+              "average_ms": 1200.0
+            }
+          ],
+          "flagged": true
+        }
+      ],
+      "slow_threshold_ms": 1000.0,
+      "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded",
+      "recommendations": [
+        {
+          "workflow_id": "WF002",
+          "actions": [
+            "Investigate frequent errors: upstream_timeout",
+            "Profile slow tools; consider caching or batching"
+          ]
+        },
+        {
+          "workflow_id": "WF004",
+          "actions": [
+            "Profile slow tools; consider caching or batching"
+          ]
+        }
+      ]
+    },
+    "duration_ms": 0.299
+  }
+]

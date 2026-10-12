@@ -1,0 +1,474 @@
+{
+  "WF001": {
+    "source": {
+      "Workflow_ID": "WF001",
+      "Workflow_Name": "Inventory Restock Check",
+      "Trigger": "User asks which products need restocking",
+      "Inputs": "Product inventory CSV; minimum stock threshold",
+      "Steps": "Load inventory → compare current stock with minimum threshold → identify low-stock products → calculate reorder quantity → generate restock list",
+      "Decision_Logic": "If current_stock < minimum_stock, mark product for restock",
+      "Tools_Required": "CSV reader; calculator",
+      "Expected_Output": "List of products requiring restock with current stock, threshold, and suggested reorder quantity"
+    },
+    "required": [],
+    "routing_terms": [
+      "restock",
+      "restocking",
+      "inventory"
+    ],
+    "steps": [
+      {
+        "name": "Load inventory",
+        "tool": "read_rows",
+        "save_as": "inventory",
+        "args": {
+          "default": "inventory.csv"
+        }
+      },
+      {
+        "name": "Compare threshold, identify low stock and calculate reorder quantities",
+        "tool": "restock",
+        "save_as": "result",
+        "args": {
+          "source": "inventory"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF002": {
+    "source": {
+      "Workflow_ID": "WF002",
+      "Workflow_Name": "Product Price Validation",
+      "Trigger": "User asks to validate product prices",
+      "Inputs": "Product CSV; vendor price list",
+      "Steps": "Load product prices → match products by SKU → compare internal and vendor prices → calculate percentage difference → flag exceptions",
+      "Decision_Logic": "Flag when price difference exceeds 10%",
+      "Tools_Required": "CSV reader; calculator",
+      "Expected_Output": "Validation report showing matched products, price differences, and exceptions"
+    },
+    "required": [],
+    "routing_terms": [
+      "prices",
+      "price",
+      "vendor price",
+      "validate product"
+    ],
+    "steps": [
+      {
+        "name": "Load internal product prices",
+        "tool": "read_rows",
+        "save_as": "products",
+        "args": {
+          "default": "products.csv"
+        }
+      },
+      {
+        "name": "Load vendor prices",
+        "tool": "read_rows",
+        "save_as": "vendor",
+        "args": {
+          "input": "vendor_file",
+          "default": "vendor_prices.csv"
+        }
+      },
+      {
+        "name": "Match SKU, calculate percentage difference and flag exceptions",
+        "tool": "compare_prices",
+        "save_as": "result",
+        "args": {
+          "products": "products",
+          "vendor": "vendor"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF003": {
+    "source": {
+      "Workflow_ID": "WF003",
+      "Workflow_Name": "Vendor File Processing",
+      "Trigger": "User provides a vendor file for processing",
+      "Inputs": "CSV/XLSX file containing vendor product data",
+      "Steps": "Read file → detect columns → normalize column names → validate required fields → identify invalid rows → produce cleaned dataset",
+      "Decision_Logic": "Rows missing SKU or product name are invalid",
+      "Tools_Required": "Excel/CSV parser; data validation",
+      "Expected_Output": "Cleaned file plus validation summary and invalid-row report"
+    },
+    "required": [
+      "file"
+    ],
+    "routing_terms": [
+      "vendor spreadsheet",
+      "invalid rows",
+      "vendor file",
+      "process"
+    ],
+    "steps": [
+      {
+        "name": "Read vendor file",
+        "tool": "read_rows",
+        "save_as": "rows",
+        "args": {
+          "default": "vendor.csv"
+        }
+      },
+      {
+        "name": "Detect and normalize column names",
+        "tool": "normalize_columns",
+        "save_as": "normalized",
+        "args": {
+          "source": "rows"
+        }
+      },
+      {
+        "name": "Validate fields and split invalid rows",
+        "tool": "validate_rows",
+        "save_as": "validated",
+        "args": {
+          "source": "normalized",
+          "required": [
+            "sku",
+            "product_name"
+          ]
+        }
+      },
+      {
+        "name": "Export cleaned dataset and invalid-row report",
+        "tool": "export_validation",
+        "save_as": "result",
+        "args": {
+          "source": "validated"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF004": {
+    "source": {
+      "Workflow_ID": "WF004",
+      "Workflow_Name": "Product Description Generator",
+      "Trigger": "User asks to generate product content",
+      "Inputs": "Product name; category; attributes; material; color; target audience",
+      "Steps": "Validate required attributes → create product description → generate short description → generate SEO title → generate meta description",
+      "Decision_Logic": "Do not invent missing product attributes; explicitly mark missing information",
+      "Tools_Required": "LLM; text validation",
+      "Expected_Output": "Product description, short description, SEO title, and meta description"
+    },
+    "required": [
+      "product_name"
+    ],
+    "routing_terms": [
+      "product content",
+      "seo content",
+      "description",
+      "product description"
+    ],
+    "steps": [
+      {
+        "name": "Validate attributes and record missing information",
+        "tool": "prepare_content",
+        "save_as": "prepared",
+        "args": {}
+      },
+      {
+        "name": "Generate description, short description, SEO title and meta",
+        "tool": "generate_content",
+        "save_as": "result",
+        "args": {
+          "source": "prepared"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF005": {
+    "source": {
+      "Workflow_ID": "WF005",
+      "Workflow_Name": "Customer Order Status",
+      "Trigger": "User asks for an order status",
+      "Inputs": "Order ID or customer email",
+      "Steps": "Validate identifier → search order data → retrieve order status → retrieve shipment information → summarize current status",
+      "Decision_Logic": "If no order is found, ask for another identifier",
+      "Tools_Required": "Order database/API; shipment lookup",
+      "Expected_Output": "Order status, items, shipment status, and tracking information when available"
+    },
+    "required": [],
+    "routing_terms": [
+      "order",
+      "shipment",
+      "tracking",
+      "order status"
+    ],
+    "steps": [
+      {
+        "name": "Validate order ID or email",
+        "tool": "validate_identifier",
+        "save_as": "identifier",
+        "args": {}
+      },
+      {
+        "name": "Search simulated order API",
+        "tool": "lookup_orders",
+        "save_as": "orders",
+        "args": {
+          "identifier": "identifier"
+        }
+      },
+      {
+        "name": "Retrieve shipment information",
+        "tool": "lookup_shipments",
+        "save_as": "shipments",
+        "args": {
+          "source": "orders"
+        }
+      },
+      {
+        "name": "Summarize order status, items and tracking",
+        "tool": "summarize_orders",
+        "save_as": "result",
+        "args": {
+          "source": "shipments"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF006": {
+    "source": {
+      "Workflow_ID": "WF006",
+      "Workflow_Name": "Duplicate Product Detection",
+      "Trigger": "User asks to find duplicate products",
+      "Inputs": "Product catalog",
+      "Steps": "Load products → normalize names/SKUs → compare identifiers → compare product attributes → group likely duplicates → assign confidence",
+      "Decision_Logic": "Exact SKU match is a definite duplicate; high attribute similarity is a possible duplicate",
+      "Tools_Required": "CSV/database reader; text similarity",
+      "Expected_Output": "Duplicate groups with matching fields and confidence level"
+    },
+    "required": [],
+    "routing_terms": [
+      "duplicate",
+      "duplicates",
+      "duplicate products"
+    ],
+    "steps": [
+      {
+        "name": "Load product catalog",
+        "tool": "read_rows",
+        "save_as": "products",
+        "args": {
+          "default": "catalog.csv"
+        }
+      },
+      {
+        "name": "Normalize product names and SKUs",
+        "tool": "normalize_products",
+        "save_as": "normalized",
+        "args": {
+          "source": "products"
+        }
+      },
+      {
+        "name": "Compare identifiers and attributes, group duplicates and assign confidence",
+        "tool": "duplicate_groups",
+        "save_as": "result",
+        "args": {
+          "source": "normalized"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF007": {
+    "source": {
+      "Workflow_ID": "WF007",
+      "Workflow_Name": "Marketing Campaign Brief",
+      "Trigger": "User asks to create a campaign brief",
+      "Inputs": "Campaign goal; product list; target audience; promotion; dates",
+      "Steps": "Validate inputs → identify campaign objective → summarize products → create messaging → create channel recommendations → create campaign checklist",
+      "Decision_Logic": "If campaign goal or dates are missing, request them before generating the brief",
+      "Tools_Required": "LLM; product data reader",
+      "Expected_Output": "Structured campaign brief with objective, audience, messaging, channels, timeline, and checklist"
+    },
+    "required": [
+      "campaign_goal",
+      "dates"
+    ],
+    "routing_terms": [
+      "campaign",
+      "campaign brief",
+      "collection"
+    ],
+    "steps": [
+      {
+        "name": "Validate campaign goal and dates, summarize products",
+        "tool": "prepare_campaign",
+        "save_as": "prepared",
+        "args": {}
+      },
+      {
+        "name": "Create objective, messaging, channels, timeline and checklist",
+        "tool": "generate_campaign",
+        "save_as": "result",
+        "args": {
+          "source": "prepared"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF008": {
+    "source": {
+      "Workflow_ID": "WF008",
+      "Workflow_Name": "SEO Keyword Classification",
+      "Trigger": "User uploads or provides a keyword list",
+      "Inputs": "Keyword CSV; product/category information",
+      "Steps": "Read keywords → remove duplicates → classify search intent → map keywords to categories → identify high-priority keywords → export results",
+      "Decision_Logic": "Classify each keyword as informational, commercial, transactional, or navigational",
+      "Tools_Required": "CSV reader; LLM/classifier",
+      "Expected_Output": "Keyword report with intent, category, priority, and recommended target page"
+    },
+    "required": [
+      "categories"
+    ],
+    "routing_terms": [
+      "keywords",
+      "keyword",
+      "classify",
+      "map them to pages"
+    ],
+    "steps": [
+      {
+        "name": "Read keyword list",
+        "tool": "read_rows",
+        "save_as": "rows",
+        "args": {
+          "default": "keywords.csv"
+        }
+      },
+      {
+        "name": "Remove duplicate and empty keywords",
+        "tool": "deduplicate_keywords",
+        "save_as": "keywords",
+        "args": {
+          "source": "rows"
+        }
+      },
+      {
+        "name": "Classify intent, map categories, prioritize and recommend target pages",
+        "tool": "classify_keywords",
+        "save_as": "classified",
+        "args": {
+          "source": "keywords"
+        }
+      },
+      {
+        "name": "Export keyword report",
+        "tool": "export_keywords",
+        "save_as": "result",
+        "args": {
+          "source": "classified"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF009": {
+    "source": {
+      "Workflow_ID": "WF009",
+      "Workflow_Name": "Employee Task Assignment",
+      "Trigger": "Manager asks the agent to assign a task",
+      "Inputs": "Task description; employee list; skills; workload; priority; deadline",
+      "Steps": "Understand task requirements → compare employee skills → check current workload → rank candidates → select employee → generate assignment summary",
+      "Decision_Logic": "Prefer employees with required skills and available capacity; escalate if no suitable employee exists",
+      "Tools_Required": "Employee/task database; ranking logic",
+      "Expected_Output": "Recommended employee, reasoning, priority, deadline, and task summary"
+    },
+    "required": [
+      "task_description",
+      "required_skills",
+      "priority",
+      "deadline"
+    ],
+    "routing_terms": [
+      "assign",
+      "task",
+      "developer",
+      "employee"
+    ],
+    "steps": [
+      {
+        "name": "Load employee skills and workload",
+        "tool": "read_rows",
+        "save_as": "employees",
+        "args": {
+          "default": "employees.csv"
+        }
+      },
+      {
+        "name": "Compare required skills, check capacity and rank candidates",
+        "tool": "rank_employees",
+        "save_as": "ranked",
+        "args": {
+          "source": "employees"
+        }
+      },
+      {
+        "name": "Recommend employee or escalate; generate assignment summary",
+        "tool": "recommend_assignment",
+        "save_as": "result",
+        "args": {
+          "source": "ranked"
+        }
+      }
+    ],
+    "output": "result"
+  },
+  "WF010": {
+    "source": {
+      "Workflow_ID": "WF010",
+      "Workflow_Name": "Workflow Performance Report",
+      "Trigger": "User asks for a performance report",
+      "Inputs": "Workflow execution logs",
+      "Steps": "Load execution logs → calculate success/failure rate → calculate average execution time → identify frequent errors → identify slow steps → generate recommendations",
+      "Decision_Logic": "Flag workflows with failure rate above 10% or average execution time above defined threshold",
+      "Tools_Required": "CSV/database reader; calculator; reporting",
+      "Expected_Output": "Performance summary with metrics, problem areas, and improvement recommendations"
+    },
+    "required": [],
+    "routing_terms": [
+      "performance",
+      "failing",
+      "failure",
+      "execution logs",
+      "workflows"
+    ],
+    "steps": [
+      {
+        "name": "Load execution logs",
+        "tool": "read_rows",
+        "save_as": "logs",
+        "args": {
+          "default": "execution_logs.json"
+        }
+      },
+      {
+        "name": "Calculate rates, execution times, errors and slow steps; flag problems",
+        "tool": "performance_metrics",
+        "save_as": "metrics",
+        "args": {
+          "source": "logs"
+        }
+      },
+      {
+        "name": "Generate improvement recommendations",
+        "tool": "performance_recommendations",
+        "save_as": "result",
+        "args": {
+          "source": "metrics"
+        }
+      }
+    ],
+    "output": "result"
+  }
+}

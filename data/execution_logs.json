@@ -1,0 +1,230 @@
+[
+  {
+    "workflow_id": "WF001",
+    "status": "failure",
+    "duration_ms": 500,
+    "error": "upstream_timeout",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF001",
+    "status": "success",
+    "duration_ms": 500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF002",
+    "status": "failure",
+    "duration_ms": 1500,
+    "error": "upstream_timeout",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF002",
+    "status": "failure",
+    "duration_ms": 1500,
+    "error": "upstream_timeout",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF002",
+    "status": "success",
+    "duration_ms": 1500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF002",
+    "status": "success",
+    "duration_ms": 1500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF002",
+    "status": "success",
+    "duration_ms": 1500,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1500
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF004",
+    "status": "success",
+    "duration_ms": 1200,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1200
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF004",
+    "status": "success",
+    "duration_ms": 1200,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1200
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF004",
+    "status": "success",
+    "duration_ms": 1200,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1200
+      }
+    ]
+  },
+  {
+    "workflow_id": "WF004",
+    "status": "success",
+    "duration_ms": 1200,
+    "error": "",
+    "steps": [
+      {
+        "name": "fetch_data",
+        "duration_ms": 1200
+      }
+    ]
+  }
+]

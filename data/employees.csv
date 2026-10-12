@@ -1,0 +1,5 @@
+employee_id,name,skills,workload,capacity
+E01,Asha,python;api;sql,3,5
+E02,Rohan,python;api,5,5
+E03,Neha,react;css,1,5
+E04,Dev,python;api;sql,1,5

@@ -1,0 +1,24 @@
+[
+  {
+    "order_id": "ORD-1001",
+    "customer_email": "customer@example.com",
+    "status": "Shipped",
+    "items": [
+      {
+        "sku": "SKU-001",
+        "quantity": 2
+      }
+    ]
+  },
+  {
+    "order_id": "ORD-1002",
+    "customer_email": "customer@example.com",
+    "status": "Processing",
+    "items": [
+      {
+        "sku": "SKU-002",
+        "quantity": 1
+      }
+    ]
+  }
+]
