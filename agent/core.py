@@ -28,6 +28,11 @@ class TransientError(WorkflowError):
     pass
 
 
+class QuotaError(WorkflowError):
+    """Pause rather than automatically consuming more exhausted provider quota."""
+    pass
+
+
 def tool(name):
     def register(fn):
         if name in TOOLS:
@@ -125,7 +130,7 @@ class Engine:
             for attempt in range(2):
                 result["selection_attempts"] = attempt + 1
                 try:
-                    selection = self.backend.select(request, self.catalog)
+                    selection = self.backend.select(request, self.catalog, inputs or {})
                     break
                 except TransientError:
                     if attempt == 1:
@@ -175,6 +180,8 @@ class Engine:
             result.update(status="success", result=ctx.state[definition["output"]])
         except Clarification as exc:
             result.update(status="needs_input", message=str(exc))
+        except QuotaError as exc:
+            result.update(status="error", error_code="rate_limited", message=str(exc))
         except (WorkflowError, ValueError, KeyError, TypeError, OSError, csv.Error) as exc:
             result.update(status="error", message=str(exc))
         except Exception:

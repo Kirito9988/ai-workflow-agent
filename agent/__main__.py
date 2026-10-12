@@ -16,6 +16,23 @@ def load_env():
                 os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
 
 
+def run_examples(engine, examples):
+    outputs = []
+    blocked = False
+    for example in examples:
+        if blocked:
+            result = {"requested_workflow_id": example["workflow_id"], "workflow_id": None,
+                      "request": example["request"], "status": "not_run", "steps": [],
+                      "message": "Not attempted: batch paused after Gemini quota/rate-limit response"}
+        else:
+            result = engine.run(example["request"], example["inputs"])
+            result["requested_workflow_id"] = example["workflow_id"]
+            blocked = result.get("error_code") == "rate_limited"
+        outputs.append(result)
+        print(example["workflow_id"], "selected=" + str(result["workflow_id"]), result["status"], result.get("message", ""), flush=True)
+    return outputs
+
+
 def main():
     load_env()
     parser = argparse.ArgumentParser(description="Excel workflow automation agent")
@@ -44,11 +61,9 @@ def main():
         elif args.command == "catalog":
             print(json.dumps([d["source"] for d in engine.catalog.workflows.values()], indent=2))
         elif args.command == "examples":
-            outputs = [engine.run(e["request"], e["inputs"]) for e in json.loads((ROOT / "examples/requests.json").read_text())]
+            outputs = run_examples(engine, json.loads((ROOT / "examples/requests.json").read_text()))
             target = ROOT / "examples" / ("live_results.json" if args.mode == "live" else "demo_results.json")
             target.write_text(json.dumps(outputs, indent=2, ensure_ascii=False))
-            for result in outputs:
-                print(result["workflow_id"], result["status"], result.get("message", ""))
             print("Results:", target)
             if any(r["status"] != "success" for r in outputs):
                 raise SystemExit(1)

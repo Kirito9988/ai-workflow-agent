@@ -37,13 +37,14 @@ After changing `.env` or pulling an update, stop the old server with Control+C a
 python -m agent --mode live check
 ```
 
-This sends a minimal request directly to Gemini without the Excel catalog or tools. If it times out, the issue is on the API/network path rather than business inputs. Check internet access, proxy/VPN settings and the model available in your Google AI Studio account. HTTP 401/403 indicates authentication/access; 404 usually indicates an unavailable model; 429 indicates quota/rate limits. The error does not expose your key.
+This sends a minimal request directly to Gemini without the Excel catalog or tools. If it times out, the issue is on the API/network path rather than business inputs. Check internet access, proxy/VPN settings and the model available in your Google AI Studio account. HTTP 401/403 indicates authentication/access; 404 usually indicates an unavailable model; 429 indicates quota/rate limits; 503 indicates a temporary service failure. A 429 pauses the batch rather than repeatedly sending more requests. Waiting may help a per-minute limit, but does not resolve an exhausted daily quota. View the model-specific limits for your project in Google AI Studio. The error does not expose your key.
 
 Optional `.env` settings:
 
 ```env
 GEMINI_TIMEOUT_SECONDS=90
 GEMINI_REASONING_EFFORT=low
+GEMINI_MIN_INTERVAL_SECONDS=15
 ```
 
 SSL read timeouts are converted into an actionable Gemini error, rather than the raw “read operation timed out” message. Increasing a timeout only allows more waiting; it cannot repair a network or service outage.
@@ -60,7 +61,7 @@ python -m unittest discover -s tests -v
 python -m agent --mode live examples
 ```
 
-`--inputs @inputs.json` reads an input JSON file. JSON inputs supplied explicitly override values inferred from the user request. Never commit your credentials or personal customer data. To use your own input CSV/XLSX, place it in `data/` and pass its relative filename. The browser does not implement upload; this is deliberately a local application.
+`--inputs @inputs.json` reads an input JSON file. The router receives both the natural-language request and explicit business inputs. Missing fields do not make an otherwise recognizable workflow unsupported: the shared engine performs required-field validation after selection. JSON inputs supplied explicitly override values inferred from the user request. Never commit your credentials or personal customer data. To use your own input CSV/XLSX, place it in `data/` and pass its relative filename. The browser does not implement upload; this is deliberately a local application.
 
 ## Architecture
 
@@ -114,7 +115,7 @@ Detailed source interpretation: [docs/workflow_matrix.md](docs/workflow_matrix.m
 
 `success`, `needs_input` and `error` are separate outcomes. Missing required inputs stop execution before generation. Each attempted step has tool name, status, attempt count, elapsed time and output. Permanent validation failures are not retried; transient tool network failures have at most three attempts with bounded backoff. Initial routing retries transient network failures once and records `selection_attempts`; permanent validation errors are not retried. Path traversal, oversized input files, duplicate normalized columns and malformed model output are rejected. Generated CSV cells starting with formula characters are escaped. The server binds only to loopback and rejects foreign browser origins.
 
-The local HTTP server is single-process and intended for assessment demos; it has no authentication, durable shared database or queue. A production service would add authentication, centralized observability, secret management, transactional adapters, worker queues and request budgets. Gemini network calls default to a configurable 90-second timeout (5–180 seconds). `GEMINI_REASONING_EFFORT=low` requests lower reasoning effort; this does not guarantee latency. An initial routing call may make two attempts; tool calls may make three. The timeout applies to socket operations, not a global workflow deadline.
+The local HTTP server is single-process and intended for assessment demos; it has no authentication, durable shared database or queue. A production service would add authentication, centralized observability, secret management, transactional adapters, worker queues and request budgets. Gemini requests are paced at least 15 seconds apart by default, including retries and generation calls, using `GEMINI_MIN_INTERVAL_SECONDS` (0–60). This pacing is local to one process; it does not enforce token/daily quotas or coordinate multiple processes. On HTTP 429, the engine reports `rate_limited` without automatic retries, and the example batch marks remaining requests `not_run`. Check actual limits in Google AI Studio before restarting a paused batch. Gemini network calls default to a configurable 90-second timeout (5–180 seconds). `GEMINI_REASONING_EFFORT=low` requests lower reasoning effort; this does not guarantee latency. An initial routing call may make two attempts; tool calls may make three. The timeout applies to socket operations, not a global workflow deadline.
 
 ## Adding workflow 11
 
@@ -144,7 +145,7 @@ docs/                   source interpretation, explanation and Loom guide
 
 ## Validation status
 
-All ten provided test requests succeeded in offline mode. **53 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
+All ten provided test requests succeeded in offline mode. **58 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
 
 ## Submission
 

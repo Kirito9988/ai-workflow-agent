@@ -8,7 +8,7 @@ from pathlib import Path
 import urllib.error
 from unittest.mock import patch
 
-from agent.core import Catalog, Engine, ROOT, TOOLS, TransientError, WorkflowError
+from agent.core import Catalog, Engine, ROOT, TOOLS, QuotaError, TransientError, WorkflowError
 from agent.llm import DemoLLM, LiveLLM
 
 
@@ -293,12 +293,12 @@ class AgentTests(unittest.TestCase):
             with self.assertRaisesRegex(WorkflowError, "no usable completion"):
                 live.complete([])
 
-    def test_gemini_rate_limit_is_transient(self):
+    def test_gemini_rate_limit_pauses_instead_of_retrying(self):
         with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
             live = LiveLLM()
         error = urllib.error.HTTPError(live.endpoint, 429, "quota", {}, None)
         with patch("agent.llm.urllib.request.urlopen", side_effect=error):
-            with self.assertRaises(TransientError):
+            with self.assertRaises(QuotaError):
                 live.complete([])
 
     def test_gemini_timeout_and_reasoning_are_configurable(self):
@@ -336,6 +336,43 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(r["status"], "error")
         self.assertEqual(select.call_count, 2)
         self.assertEqual(r["steps"], [])
+
+    def test_router_receives_explicit_example_inputs(self):
+        with patch.object(self.engine.backend, "select", wraps=self.engine.backend.select) as select:
+            self.run_example(4)
+        self.assertEqual(select.call_args.args[2]["product_name"], "Cotton T-shirt")
+
+    def test_live_prompt_contains_supplied_inputs_and_delegates_validation(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}):
+            live = LiveLLM()
+        call = {"tool_calls": [{"function": {"name": "execute_workflow", "arguments": json.dumps({"workflow_id": "WF004", "confidence": .95, "reason": "Content request", "inputs_json": "{}"})}}]}
+        with patch.object(live, "complete", return_value=call) as complete:
+            live.select("Generate SEO content for this product", self.engine.catalog, {"product_name": "Cotton T-shirt"})
+        messages = complete.call_args.args[0]
+        self.assertEqual(json.loads(messages[1]["content"])["business_inputs"]["product_name"], "Cotton T-shirt")
+        self.assertIn("Missing business fields do NOT", messages[0]["content"])
+
+    def test_quota_error_not_retried_by_engine(self):
+        with patch.object(self.engine.backend, "select", side_effect=QuotaError("429")) as select:
+            r = self.run_example(1)
+        self.assertEqual(select.call_count, 1)
+        self.assertEqual(r["error_code"], "rate_limited")
+
+    def test_batch_pauses_remaining_examples_after_quota(self):
+        from agent.__main__ import run_examples
+        with patch.object(self.engine, "run", return_value={"workflow_id": None, "status": "error", "error_code": "rate_limited"}) as run, patch("builtins.print"):
+            outputs = run_examples(self.engine, self.examples)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual([r["status"] for r in outputs], ["error"] + ["not_run"] * 9)
+
+    def test_requests_are_paced_between_api_calls(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only", "GEMINI_MIN_INTERVAL_SECONDS": "10"}):
+            live = LiveLLM()
+        responses = [io.BytesIO(b'{"choices": [{"message": {"content": "OK"}}]}') for _ in range(2)]
+        with patch("agent.llm.time.monotonic", side_effect=[100, 100, 105, 110]), patch("agent.llm.time.sleep") as sleep, patch("agent.llm.urllib.request.urlopen", side_effect=responses):
+            live.complete([])
+            live.complete([])
+        sleep.assert_called_once_with(5)
 
 
 if __name__ == "__main__":
