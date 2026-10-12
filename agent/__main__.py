@@ -26,12 +26,19 @@ def main():
     run.add_argument("--inputs", default="{}", help="JSON object or @path/to/file.json")
     sub.add_parser("examples")
     sub.add_parser("catalog")
+    sub.add_parser("check", help="Make a minimal Gemini request to diagnose key/model/connectivity")
     web = sub.add_parser("serve")
     web.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     try:
         engine = Engine(DemoLLM() if args.mode == "demo" else LiveLLM())
-        if args.command == "serve":
+        if args.command == "check":
+            if not isinstance(engine.backend, LiveLLM):
+                parser.exit(2, "Use --mode live check to test Gemini; demo mode makes no network calls\n")
+            print(f"Testing Gemini model {engine.backend.model} (timeout {engine.backend.timeout:g}s)...", flush=True)
+            message = engine.backend.complete([{"role": "user", "content": "Reply with only OK."}])
+            print("Gemini responded:", message.get("content") or "Response received")
+        elif args.command == "serve":
             from .web import serve
             serve(engine, args.port)
         elif args.command == "catalog":

@@ -122,7 +122,15 @@ class Engine:
                 raise Clarification("Provide a request of 1–8000 characters")
             if inputs is not None and not isinstance(inputs, dict):
                 raise WorkflowError("inputs must be an object")
-            selection = self.backend.select(request, self.catalog)
+            for attempt in range(2):
+                result["selection_attempts"] = attempt + 1
+                try:
+                    selection = self.backend.select(request, self.catalog)
+                    break
+                except TransientError:
+                    if attempt == 1:
+                        raise
+                    time.sleep(.25)
             wid = selection.get("workflow_id")
             confidence = number(selection.get("confidence"), "routing confidence")
             if wid not in self.catalog.workflows or confidence < .65 or confidence > 1:

@@ -5,7 +5,7 @@ import re
 import urllib.error
 import urllib.request
 
-from .core import Clarification, TransientError, WorkflowError, normalize
+from .core import Clarification, TransientError, WorkflowError, normalize, number
 
 
 INPUT_FIELDS = {
@@ -29,18 +29,24 @@ class LiveLLM:
         self.key = os.environ.get("GEMINI_API_KEY", "").strip()
         self.model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
         self.endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        self.timeout = number(os.environ.get("GEMINI_TIMEOUT_SECONDS", "90"), "GEMINI_TIMEOUT_SECONDS", minimum=5)
+        if self.timeout > 180:
+            raise WorkflowError("GEMINI_TIMEOUT_SECONDS must be between 5 and 180")
+        self.reasoning_effort = os.environ.get("GEMINI_REASONING_EFFORT", "low").strip()
+        if self.reasoning_effort not in ("minimal", "low", "medium", "high"):
+            raise WorkflowError("GEMINI_REASONING_EFFORT must be minimal, low, medium or high")
         if not self.key:
             raise WorkflowError("GEMINI_API_KEY is required in live mode; set it in .env")
         if not self.model:
             raise WorkflowError("GEMINI_MODEL cannot be empty")
 
     def complete(self, messages, **extra):
-        body = {"model": self.model, "messages": messages, **extra}
+        body = {"model": self.model, "messages": messages, "reasoning_effort": self.reasoning_effort, **extra}
         req = urllib.request.Request(self.endpoint,
                                      data=json.dumps(body).encode(),
                                      headers={"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=40) as response:
+            with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 payload = json.load(response)
                 try:
                     message = payload["choices"][0]["message"]
@@ -53,8 +59,13 @@ class LiveLLM:
             if exc.code == 429 or exc.code >= 500:
                 raise TransientError(f"Gemini temporarily unavailable (HTTP {exc.code}); check quota or retry") from None
             raise WorkflowError(f"Gemini request failed (HTTP {exc.code}); check GEMINI_MODEL and GEMINI_API_KEY") from None
-        except (urllib.error.URLError, TimeoutError):
-            raise TransientError("LLM network timeout or connection error") from None
+        except urllib.error.URLError:
+            raise TransientError("Cannot reach Gemini. Check your internet connection or proxy, then run the live check command") from None
+        except OSError as exc:
+            # SSL reads can report a timeout as SSLError rather than TimeoutError.
+            if isinstance(exc, TimeoutError) or "timed out" in str(exc).lower():
+                raise TransientError(f"Gemini did not respond within {self.timeout:g} seconds. Check connectivity with 'python -m agent --mode live check'; GEMINI_TIMEOUT_SECONDS controls the wait") from None
+            raise TransientError("Gemini network connection failed. Check connectivity with the live check command") from None
 
     def select(self, request, catalog):
         choices = [{**d["source"], "required_fields": d.get("required", [])} for d in catalog.workflows.values()]

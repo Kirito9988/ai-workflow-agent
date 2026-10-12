@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import ssl
 import tempfile
 import unittest
 from pathlib import Path
@@ -299,6 +300,42 @@ class AgentTests(unittest.TestCase):
         with patch("agent.llm.urllib.request.urlopen", side_effect=error):
             with self.assertRaises(TransientError):
                 live.complete([])
+
+    def test_gemini_timeout_and_reasoning_are_configurable(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only", "GEMINI_TIMEOUT_SECONDS": "75", "GEMINI_REASONING_EFFORT": "low"}):
+            live = LiveLLM()
+        response = io.BytesIO(b'{"choices": [{"message": {"content": "OK"}}]}')
+        with patch("agent.llm.urllib.request.urlopen", return_value=response) as opened:
+            live.complete([])
+        self.assertEqual(opened.call_args.kwargs["timeout"], 75)
+        self.assertEqual(json.loads(opened.call_args.args[0].data)["reasoning_effort"], "low")
+
+    def test_ssl_read_timeout_is_actionable(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only", "GEMINI_TIMEOUT_SECONDS": "90"}):
+            live = LiveLLM()
+        with patch("agent.llm.urllib.request.urlopen", side_effect=ssl.SSLError("The read operation timed out")):
+            with self.assertRaisesRegex(TransientError, "90 seconds"):
+                live.complete([])
+
+    def test_invalid_timeout_is_rejected(self):
+        for value in ["NaN", "2", "181", "invalid"]:
+            with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only", "GEMINI_TIMEOUT_SECONDS": value}):
+                with self.assertRaises(WorkflowError):
+                    LiveLLM()
+
+    def test_transient_selection_retry(self):
+        selection = {"workflow_id": "WF001", "confidence": .9, "reason": "restock", "inputs": {}}
+        with patch.object(self.engine.backend, "select", side_effect=[TransientError("timeout"), selection]):
+            r = self.run_example(1)
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(r["selection_attempts"], 2)
+
+    def test_selection_retry_limit(self):
+        with patch.object(self.engine.backend, "select", side_effect=TransientError("timeout")) as select:
+            r = self.run_example(1)
+        self.assertEqual(r["status"], "error")
+        self.assertEqual(select.call_count, 2)
+        self.assertEqual(r["steps"], [])
 
 
 if __name__ == "__main__":

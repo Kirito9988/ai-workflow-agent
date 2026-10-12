@@ -29,6 +29,25 @@ The key remains on the Python server; it is never sent to the browser or include
 
 **Offline demo is a test backend, not an LLM.** It uses catalog keywords and deterministic text fixtures. It works without credentials and is visibly labelled. It must not be presented as proof that live LLM integration was tested. There is no silent fallback from live to demo.
 
+### Diagnosing Gemini connection problems
+
+After changing `.env` or pulling an update, stop the old server with Control+C and restart it. A running Python process does not reload edited files.
+
+```bash
+python -m agent --mode live check
+```
+
+This sends a minimal request directly to Gemini without the Excel catalog or tools. If it times out, the issue is on the API/network path rather than business inputs. Check internet access, proxy/VPN settings and the model available in your Google AI Studio account. HTTP 401/403 indicates authentication/access; 404 usually indicates an unavailable model; 429 indicates quota/rate limits. The error does not expose your key.
+
+Optional `.env` settings:
+
+```env
+GEMINI_TIMEOUT_SECONDS=90
+GEMINI_REASONING_EFFORT=low
+```
+
+SSL read timeouts are converted into an actionable Gemini error, rather than the raw “read operation timed out” message. Increasing a timeout only allows more waiting; it cannot repair a network or service outage.
+
 ### CLI and tests
 
 ```bash
@@ -93,9 +112,9 @@ Detailed source interpretation: [docs/workflow_matrix.md](docs/workflow_matrix.m
 
 ## Errors and traceability
 
-`success`, `needs_input` and `error` are separate outcomes. Missing required inputs stop execution before generation. Each attempted step has tool name, status, attempt count, elapsed time and output. Permanent validation failures are not retried; transient tool network failures have at most three attempts with bounded backoff. Initial routing network failures return an explicit error for the user to retry. Path traversal, oversized input files, duplicate normalized columns and malformed model output are rejected. Generated CSV cells starting with formula characters are escaped. The server binds only to loopback and rejects foreign browser origins.
+`success`, `needs_input` and `error` are separate outcomes. Missing required inputs stop execution before generation. Each attempted step has tool name, status, attempt count, elapsed time and output. Permanent validation failures are not retried; transient tool network failures have at most three attempts with bounded backoff. Initial routing retries transient network failures once and records `selection_attempts`; permanent validation errors are not retried. Path traversal, oversized input files, duplicate normalized columns and malformed model output are rejected. Generated CSV cells starting with formula characters are escaped. The server binds only to loopback and rejects foreign browser origins.
 
-The local HTTP server is single-process and intended for assessment demos; it has no authentication, durable shared database or queue. A production service would add authentication, centralized observability, secret management, transactional adapters, worker queues and request budgets. Current network calls have a 40-second timeout.
+The local HTTP server is single-process and intended for assessment demos; it has no authentication, durable shared database or queue. A production service would add authentication, centralized observability, secret management, transactional adapters, worker queues and request budgets. Gemini network calls default to a configurable 90-second timeout (5–180 seconds). `GEMINI_REASONING_EFFORT=low` requests lower reasoning effort; this does not guarantee latency. An initial routing call may make two attempts; tool calls may make three. The timeout applies to socket operations, not a global workflow deadline.
 
 ## Adding workflow 11
 
@@ -125,7 +144,7 @@ docs/                   source interpretation, explanation and Loom guide
 
 ## Validation status
 
-All ten provided test requests succeeded in offline mode. **48 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
+All ten provided test requests succeeded in offline mode. **53 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
 
 ## Submission
 
