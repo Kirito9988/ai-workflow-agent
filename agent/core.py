@@ -56,6 +56,16 @@ def normalize(value):
     return re.sub(r"\s+", " ", str(value or "").strip().casefold())
 
 
+def clean_inputs(inputs):
+    if inputs is None:
+        return {}
+    if not isinstance(inputs, dict):
+        raise WorkflowError("inputs must be an object")
+    # Empty template placeholders are not user-supplied facts or overrides.
+    return {k: v for k, v in inputs.items()
+            if v is not None and v != [] and v != {} and not (isinstance(v, str) and not v.strip())}
+
+
 class Catalog:
     def __init__(self, excel=None, definitions=None):
         book = openpyxl.load_workbook(excel or ROOT / "data/workflows.xlsx", read_only=True, data_only=True)
@@ -115,6 +125,36 @@ class Engine:
                 if step["tool"] not in TOOLS:
                     raise WorkflowError(f"Unknown registered tool: {step['tool']}")
 
+    def input_guide(self, wid, values=None):
+        definition = self.catalog.workflows[wid]
+        return {"input_template": {**definition.get("input_template", {}), **clean_inputs(values)},
+                "input_help": definition.get("input_help", {}),
+                "required_fields": definition.get("required", []),
+                "input_note": definition.get("input_note", "")}
+
+    def prepare(self, request, inputs=None):
+        """Identify intent and show input fields without executing business tools."""
+        try:
+            if not isinstance(request, str) or not request.strip() or len(request) > 8000:
+                raise Clarification("Provide a request of 1–8000 characters")
+            supplied = clean_inputs(inputs)
+            selection = self.backend.select(request, self.catalog, supplied)
+            wid = selection.get("workflow_id")
+            confidence = number(selection.get("confidence"), "routing confidence")
+            if wid not in self.catalog.workflows or not .65 <= confidence <= 1:
+                raise Clarification(selection.get("reason") or "Please specify one supported workflow")
+            extracted = clean_inputs(selection.get("inputs", {}))
+            guide = self.input_guide(wid, {**extracted, **supplied})
+            return {"status": "ready", "workflow_id": wid,
+                    "selected_workflow": self.catalog.workflows[wid]["source"]["Workflow_Name"],
+                    "selection_reason": selection.get("reason"), **guide}
+        except Clarification as exc:
+            return {"status": "needs_input", "message": str(exc)}
+        except QuotaError as exc:
+            return {"status": "error", "error_code": "rate_limited", "message": str(exc)}
+        except (WorkflowError, ValueError, TypeError, KeyError) as exc:
+            return {"status": "error", "message": str(exc)}
+
     def run(self, request, inputs=None):
         started = time.perf_counter()
         run_id = uuid.uuid4().hex
@@ -125,8 +165,7 @@ class Engine:
         try:
             if not isinstance(request, str) or not request.strip() or len(request) > 8000:
                 raise Clarification("Provide a request of 1–8000 characters")
-            if inputs is not None and not isinstance(inputs, dict):
-                raise WorkflowError("inputs must be an object")
+            inputs = clean_inputs(inputs)
             for attempt in range(2):
                 result["selection_attempts"] = attempt + 1
                 try:
@@ -147,7 +186,8 @@ class Engine:
             if not isinstance(extracted, dict):
                 raise WorkflowError("LLM returned invalid input object")
             # Explicit inputs win over inferred values; never populate missing business inputs from fixtures.
-            merged = {**extracted, **(inputs or {})}
+            merged = {**clean_inputs(extracted), **inputs}
+            result.update(self.input_guide(wid, merged))
             missing = [key for key in definition.get("required", []) if merged.get(key) in (None, "", [], {})]
             if missing:
                 raise Clarification("Please provide: " + ", ".join(missing))

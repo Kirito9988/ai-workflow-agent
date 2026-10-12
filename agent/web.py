@@ -20,12 +20,12 @@ def serve(engine, port):
             if self.path == "/":
                 self.send(200, (ROOT / "agent/ui.html").read_text(), "text/html")
             elif self.path == "/api/catalog":
-                self.send(200, json.dumps({"mode": engine.backend.mode, "workflows": [d["source"] for d in engine.catalog.workflows.values()], "examples": json.loads((ROOT / "examples/requests.json").read_text())}))
+                self.send(200, json.dumps({"mode": engine.backend.mode, "workflows": [d["source"] for d in engine.catalog.workflows.values()], "input_guides": {wid: engine.input_guide(wid) for wid in engine.catalog.workflows}, "examples": json.loads((ROOT / "examples/requests.json").read_text())}))
             else:
                 self.send(404, json.dumps({"error": "Not found"}))
 
         def do_POST(self):
-            if self.path != "/api/run":
+            if self.path not in ("/api/run", "/api/prepare"):
                 self.send(404, json.dumps({"error": "Not found"}))
                 return
             origin = self.headers.get("Origin")
@@ -38,7 +38,8 @@ def serve(engine, port):
                 if not 0 < length <= 200000:
                     raise ValueError("Request size must be 1–200000 bytes")
                 data = json.loads(self.rfile.read(length))
-                result = engine.run(data["request"], data.get("inputs", {}))
+                action = engine.prepare if self.path == "/api/prepare" else engine.run
+                result = action(data["request"], data.get("inputs", {}))
                 self.send(200, json.dumps(result))
             except (ValueError, KeyError, TypeError):
                 self.send(400, json.dumps({"error": "Provide JSON with request and inputs"}))

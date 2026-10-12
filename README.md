@@ -11,7 +11,7 @@ pip install -r requirements.txt
 python -m agent --mode demo serve
 ```
 
-Open **http://127.0.0.1:8000**. Choose any of the ten examples, inspect its business inputs and click **Run workflow**. The page displays the selected workflow, short selection explanation, tool calls, durations, final result and a downloadable execution JSON.
+Open **http://127.0.0.1:8000**. Choose a **Workflow input template** to see blank fields and required-field help. Use **Fill with sample data** to load a runnable example, or enter your own values and click **Run workflow**. For a custom request, **Find input fields** asks the agent to identify the workflow and show its template without running business tools. The page displays the selected workflow, short selection explanation, tool calls, durations, final result and a downloadable execution JSON.
 
 Windows activation: `.venv\Scripts\activate`.
 
@@ -48,6 +48,12 @@ GEMINI_MIN_INTERVAL_SECONDS=15
 ```
 
 SSL read timeouts are converted into an actionable Gemini error, rather than the raw “read operation timed out” message. Increasing a timeout only allows more waiting; it cannot repair a network or service outage.
+
+### Guided business inputs
+
+Each reviewed workflow definition includes `input_template`, `input_help` and `input_note`. The catalog endpoint supplies these to the UI. Empty strings, nulls, empty arrays and empty objects are placeholders and are removed before routing and execution; numeric zero is preserved. Blank optional file fields use the documented sample files. A missing-input response contains the same template so users can complete it without opening the source code.
+
+`POST /api/prepare` accepts the same request/inputs as `/api/run`, but only identifies the workflow and returns its fields. It does not execute business tools or create a workflow run. In live mode it consumes a Gemini routing request; choosing a known template in the dropdown makes no LLM request. Run still selects the workflow from the user's request independently of the template choice.
 
 ### CLI and tests
 
@@ -120,7 +126,7 @@ The local HTTP server is single-process and intended for assessment demos; it ha
 ## Adding workflow 11
 
 1. Add a row to the Excel `Workflows` sheet using the same eight columns.
-2. Add its reviewed entry to `definitions.json`: exact Excel source, required inputs, demo routing terms, named steps and final output key.
+2. Add its reviewed entry to `definitions.json`: exact Excel source, required inputs, demo routing terms, named steps and final output key, plus input-template/help metadata for the guided interface.
 3. Reuse existing tools. Register a new tool only if the workflow requires a new capability.
 4. Add an example and boundary/condition tests; restart the app.
 
@@ -145,7 +151,7 @@ docs/                   source interpretation, explanation and Loom guide
 
 ## Validation status
 
-All ten provided test requests succeeded in offline mode. **62 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
+All ten provided test requests succeeded in offline mode. **69 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
 
 ## Submission
 

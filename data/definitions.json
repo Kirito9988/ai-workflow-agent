@@ -34,7 +34,16 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": "",
+      "minimum_stock": null
+    },
+    "input_help": {
+      "file": "Optional inventory CSV filename inside data/. Blank uses the sample inventory.csv.",
+      "minimum_stock": "Optional numeric threshold for all products. Blank uses each product's minimum_stock."
+    },
+    "input_note": "Blank optional fields use sample inventory and its stock thresholds."
   },
   "WF002": {
     "source": {
@@ -82,7 +91,16 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": "",
+      "vendor_file": ""
+    },
+    "input_help": {
+      "file": "Internal product price CSV in data/. Blank uses products.csv.",
+      "vendor_file": "Vendor price CSV in data/. Blank uses vendor_prices.csv."
+    },
+    "input_note": "Provide your filenames, or leave both blank to validate sample prices."
   },
   "WF003": {
     "source": {
@@ -142,7 +160,14 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": ""
+    },
+    "input_help": {
+      "file": "Required CSV/XLSX filename inside data/, for example vendor.csv. Must contain SKU and product name columns."
+    },
+    "input_note": "Place the vendor file in data/ first. File uploads are not yet supported."
   },
   "WF004": {
     "source": {
@@ -180,7 +205,24 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "product_name": "",
+      "category": "",
+      "attributes": [],
+      "material": "",
+      "color": "",
+      "target_audience": ""
+    },
+    "input_help": {
+      "product_name": "Required product name.",
+      "category": "Optional category, for example Clothing.",
+      "attributes": "Array of known features, for example [\"round neck\", \"short sleeves\"].",
+      "material": "Known material only; leave blank if unknown.",
+      "color": "Known color only; leave blank if unknown.",
+      "target_audience": "Intended customers, for example adults."
+    },
+    "input_note": "Only product_name is mandatory. Missing optional details are explicitly listed in the result."
   },
   "WF005": {
     "source": {
@@ -232,7 +274,16 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "order_id": "",
+      "customer_email": ""
+    },
+    "input_help": {
+      "order_id": "Order ID such as ORD-1001.",
+      "customer_email": "Customer email; may return multiple matching orders."
+    },
+    "input_note": "Provide at least one identifier: order_id OR customer_email. You can also include it in your request."
   },
   "WF006": {
     "source": {
@@ -277,7 +328,14 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": ""
+    },
+    "input_help": {
+      "file": "Product catalog CSV filename inside data/. Blank uses catalog.csv."
+    },
+    "input_note": "Blank uses the sample catalog. Candidate duplicates require human review."
   },
   "WF007": {
     "source": {
@@ -315,7 +373,22 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "campaign_goal": "",
+      "dates": "",
+      "products": [],
+      "target_audience": "",
+      "promotion": ""
+    },
+    "input_help": {
+      "campaign_goal": "Required campaign objective.",
+      "dates": "Required campaign date or date range, for example 2026-10-15 to 2026-10-21.",
+      "products": "Array of product names, for example [\"Cotton T-shirt\"].",
+      "target_audience": "Intended audience.",
+      "promotion": "Known offer; leave blank if none is provided."
+    },
+    "input_note": "Goal and dates are required before a brief can be generated."
   },
   "WF008": {
     "source": {
@@ -371,7 +444,16 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": "",
+      "categories": {}
+    },
+    "input_help": {
+      "file": "Keyword CSV in data/ with a keyword column. Blank uses keywords.csv.",
+      "categories": "Required category-to-term mapping, for example {\"clothing\":[\"shirt\",\"cotton\"],\"home\":[\"mug\"]}."
+    },
+    "input_note": "Enter your category mapping. The agent will classify keywords and suggest relative website pages."
   },
   "WF009": {
     "source": {
@@ -422,7 +504,22 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": "",
+      "task_description": "",
+      "required_skills": [],
+      "priority": "",
+      "deadline": ""
+    },
+    "input_help": {
+      "file": "Employee CSV in data/. Blank uses employees.csv.",
+      "task_description": "Required description of the work.",
+      "required_skills": "Required array, for example [\"python\",\"api\"].",
+      "priority": "Required priority, for example urgent.",
+      "deadline": "Required deadline, for example 2026-10-14."
+    },
+    "input_note": "The result recommends a suitable employee or escalates; it does not modify a real task database."
   },
   "WF010": {
     "source": {
@@ -469,6 +566,15 @@
         }
       }
     ],
-    "output": "result"
+    "output": "result",
+    "input_template": {
+      "file": "",
+      "slow_threshold_ms": null
+    },
+    "input_help": {
+      "file": "Execution-log JSON/CSV filename inside data/. Blank uses execution_logs.json.",
+      "slow_threshold_ms": "Optional number in milliseconds. Blank uses 1000."
+    },
+    "input_note": "Blank uses sample execution logs and the default slow threshold."
   }
 }

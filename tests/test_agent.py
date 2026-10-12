@@ -418,6 +418,45 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(r["status"], "error")
         self.assertIn("target_page", r["message"])
 
+    def test_every_workflow_has_input_template_and_help(self):
+        for wid in self.engine.catalog.workflows:
+            guide = self.engine.input_guide(wid)
+            self.assertTrue(guide["input_template"], wid)
+            self.assertEqual(set(guide["input_template"]), set(guide["input_help"]), wid)
+            self.assertTrue(set(guide["required_fields"]).issubset(guide["input_template"]), wid)
+
+    def test_blank_order_template_preserves_identifier_from_request(self):
+        r = self.engine.run("Where is order ORD-1001?", {"order_id": "", "customer_email": ""})
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(r["result"]["orders"][0]["order_id"], "ORD-1001")
+
+    def test_blank_inventory_template_uses_defaults(self):
+        r = self.run_example(1, {"file": "", "minimum_stock": None})
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(r["result"]["products_requiring_restock"][0]["reorder_quantity"], 16)
+
+    def test_numeric_zero_is_not_removed_as_empty_input(self):
+        r = self.run_example(1, {"minimum_stock": 0})
+        self.assertEqual(r["status"], "success")
+        self.assertEqual(r["result"]["products_requiring_restock"], [])
+
+    def test_missing_campaign_inputs_return_blank_template(self):
+        r = self.engine.run("Create a campaign brief", {"campaign_goal": "", "dates": ""})
+        self.assertEqual(r["status"], "needs_input")
+        self.assertEqual(r["input_template"]["campaign_goal"], "")
+        self.assertEqual(r["required_fields"], ["campaign_goal", "dates"])
+
+    def test_prepare_identifies_inputs_without_running_business_tools(self):
+        with patch.dict(TOOLS, {"lookup_orders": lambda *a: self.fail("Preparation must not execute tools")}):
+            r = self.engine.prepare("Where is order ORD-1001?", {"order_id": "", "customer_email": ""})
+        self.assertEqual(r["status"], "ready")
+        self.assertEqual(r["input_template"]["order_id"], "ORD-1001")
+        self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
+
+    def test_prepare_unknown_request_and_bad_inputs(self):
+        self.assertEqual(self.engine.prepare("What is the weather?")["status"], "needs_input")
+        self.assertEqual(self.engine.prepare("restock", ["bad"])["status"], "error")
+
 
 if __name__ == "__main__":
     unittest.main()
