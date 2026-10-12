@@ -1,6 +1,6 @@
 [
   {
-    "run_id": "93ded1c2978a437aa1c8857ba89a77a5",
+    "run_id": "6cd4217a091a4f409943660e49edaff3",
     "mode": "live_llm",
     "request": "Which products need restocking?",
     "workflow_id": "WF001",
@@ -32,7 +32,7 @@
             "minimum_stock": "15"
           }
         ],
-        "duration_ms": 2.971
+        "duration_ms": 1.563
       },
       {
         "name": "Compare threshold, identify low stock and calculate reorder quantities",
@@ -51,12 +51,12 @@
           ],
           "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
         },
-        "duration_ms": 0.017
+        "duration_ms": 0.012
       }
     ],
     "selection_attempts": 1,
-    "selection_reason": "The user is directly asking which products need restocking, matching the trigger and intent of WF001 (Inventory Restock Check). No specific inputs or parameters were provided.",
-    "confidence": 0.95,
+    "selection_reason": "The user is asking which products need restocking, which directly matches the Inventory Restock Check workflow (WF001).",
+    "confidence": 1.0,
     "result": {
       "products_requiring_restock": [
         {
@@ -69,10 +69,11 @@
       ],
       "reorder_policy": "Top up to minimum stock; no supplier pack size assumed"
     },
-    "duration_ms": 25490.238
+    "duration_ms": 1715.137,
+    "requested_workflow_id": "WF001"
   },
   {
-    "run_id": "5464a022ea9a4b4ca22e859b82b72575",
+    "run_id": "5bef7698c490469dad5f50e20d8f39f1",
     "mode": "live_llm",
     "request": "Find products where vendor price differs by more than 10%.",
     "workflow_id": "WF002",
@@ -111,7 +112,7 @@
             "price": "10"
           }
         ],
-        "duration_ms": 1.376
+        "duration_ms": 1.641
       },
       {
         "name": "Load vendor prices",
@@ -136,7 +137,7 @@
             "price": "0"
           }
         ],
-        "duration_ms": 0.661
+        "duration_ms": 0.85
       },
       {
         "name": "Match SKU, calculate percentage difference and flag exceptions",
@@ -185,12 +186,12 @@
           "denominator": "vendor price",
           "rule": "absolute difference > 10%"
         },
-        "duration_ms": 2.422
+        "duration_ms": 1.236
       }
     ],
     "selection_attempts": 1,
-    "selection_reason": "The request asks to validate/find products where the vendor price differs by more than 10%, directly matching WF002 (Product Price Validation). No explicit files or parameters were provided in the prompt.",
-    "confidence": 0.95,
+    "selection_reason": "The user is asking to find products where the vendor price differs by more than 10%, which directly matches the Product Price Validation workflow (WF002).",
+    "confidence": 1.0,
     "result": {
       "products": [
         {
@@ -233,34 +234,262 @@
       "denominator": "vendor price",
       "rule": "absolute difference > 10%"
     },
-    "duration_ms": 9450.454
+    "duration_ms": 15262.026,
+    "requested_workflow_id": "WF002"
   },
   {
-    "run_id": "926c572cb5fe4d4e93eb77f6dc8896ce",
+    "run_id": "21e81625ce29479c91597823fb7ac0d4",
     "mode": "live_llm",
     "request": "Process this vendor spreadsheet and show invalid rows.",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "error",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "Gemini temporarily unavailable (HTTP 503); check quota or retry",
-    "duration_ms": 4981.827
+    "workflow_id": "WF003",
+    "selected_workflow": "Vendor File Processing",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Read vendor file",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "Product SKU": "  V001 ",
+            "Product Name": " Linen Shirt ",
+            "Color": "White"
+          },
+          {
+            "Product SKU": "",
+            "Product Name": "Broken entry",
+            "Color": "Blue"
+          },
+          {
+            "Product SKU": "V003",
+            "Product Name": "",
+            "Color": "Black"
+          }
+        ],
+        "duration_ms": 1.582
+      },
+      {
+        "name": "Detect and normalize column names",
+        "tool": "normalize_columns",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "V001",
+            "product_name": "Linen Shirt",
+            "color": "White"
+          },
+          {
+            "sku": "",
+            "product_name": "Broken entry",
+            "color": "Blue"
+          },
+          {
+            "sku": "V003",
+            "product_name": "",
+            "color": "Black"
+          }
+        ],
+        "duration_ms": 0.392
+      },
+      {
+        "name": "Validate fields and split invalid rows",
+        "tool": "validate_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "cleaned": [
+            {
+              "sku": "V001",
+              "product_name": "Linen Shirt",
+              "color": "White"
+            }
+          ],
+          "invalid_rows": [
+            {
+              "row_number": 3,
+              "missing_fields": [
+                "sku"
+              ],
+              "data": {
+                "sku": "",
+                "product_name": "Broken entry",
+                "color": "Blue"
+              }
+            },
+            {
+              "row_number": 4,
+              "missing_fields": [
+                "product_name"
+              ],
+              "data": {
+                "sku": "V003",
+                "product_name": "",
+                "color": "Black"
+              }
+            }
+          ],
+          "total_rows": 3,
+          "valid_count": 1,
+          "invalid_count": 2
+        },
+        "duration_ms": 0.035
+      },
+      {
+        "name": "Export cleaned dataset and invalid-row report",
+        "tool": "export_validation",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "cleaned": [
+            {
+              "sku": "V001",
+              "product_name": "Linen Shirt",
+              "color": "White"
+            }
+          ],
+          "invalid_rows": [
+            {
+              "row_number": 3,
+              "missing_fields": [
+                "sku"
+              ],
+              "data": {
+                "sku": "",
+                "product_name": "Broken entry",
+                "color": "Blue"
+              }
+            },
+            {
+              "row_number": 4,
+              "missing_fields": [
+                "product_name"
+              ],
+              "data": {
+                "sku": "V003",
+                "product_name": "",
+                "color": "Black"
+              }
+            }
+          ],
+          "total_rows": 3,
+          "valid_count": 1,
+          "invalid_count": 2,
+          "files": [
+            "/Users/harshikathakur/ai-workflow-agent/runs/21e81625ce29479c91597823fb7ac0d4/cleaned.csv",
+            "/Users/harshikathakur/ai-workflow-agent/runs/21e81625ce29479c91597823fb7ac0d4/invalid_rows.json"
+          ]
+        },
+        "duration_ms": 1.205
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user provided a vendor file and requested processing and invalid rows, which directly matches Workflow WF003 (Vendor File Processing).",
+    "confidence": 1.0,
+    "result": {
+      "cleaned": [
+        {
+          "sku": "V001",
+          "product_name": "Linen Shirt",
+          "color": "White"
+        }
+      ],
+      "invalid_rows": [
+        {
+          "row_number": 3,
+          "missing_fields": [
+            "sku"
+          ],
+          "data": {
+            "sku": "",
+            "product_name": "Broken entry",
+            "color": "Blue"
+          }
+        },
+        {
+          "row_number": 4,
+          "missing_fields": [
+            "product_name"
+          ],
+          "data": {
+            "sku": "V003",
+            "product_name": "",
+            "color": "Black"
+          }
+        }
+      ],
+      "total_rows": 3,
+      "valid_count": 1,
+      "invalid_count": 2,
+      "files": [
+        "/Users/harshikathakur/ai-workflow-agent/runs/21e81625ce29479c91597823fb7ac0d4/cleaned.csv",
+        "/Users/harshikathakur/ai-workflow-agent/runs/21e81625ce29479c91597823fb7ac0d4/invalid_rows.json"
+      ]
+    },
+    "duration_ms": 14555.742,
+    "requested_workflow_id": "WF003"
   },
   {
-    "run_id": "bb19a2dbf59242559dd1f957bae046a5",
+    "run_id": "2db5b7eef6a34de8835ff58e3f36afb8",
     "mode": "live_llm",
     "request": "Generate SEO content for this product.",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "needs_input",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "The user requested SEO product content generation, which aligns with WF004 (Product Description Generator), but did not provide the required product_name or any other product details.",
-    "duration_ms": 26019.35
+    "workflow_id": "WF004",
+    "selected_workflow": "Product Description Generator",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Validate attributes and record missing information",
+        "tool": "prepare_content",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "facts": {
+            "product_name": "Cotton T-shirt",
+            "category": "clothing",
+            "attributes": [
+              "round neck"
+            ],
+            "material": "cotton",
+            "color": "white",
+            "target_audience": "adults"
+          },
+          "missing_information": []
+        },
+        "duration_ms": 0.034
+      },
+      {
+        "name": "Generate description, short description, SEO title and meta",
+        "tool": "generate_content",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "description": "A classic white cotton T-shirt designed for adults, featuring a comfortable round neck.",
+          "short_description": "White cotton round neck T-shirt for adults.",
+          "seo_title": "White Cotton T-Shirt for Adults | Round Neck",
+          "meta_description": "Shop the classic white cotton T-shirt for adults featuring a comfortable round neck. Made from soft cotton.",
+          "missing_information": [],
+          "review_note": "Review generated prose for factual accuracy before publishing"
+        },
+        "duration_ms": 14950.268
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user wants to generate product content (description, SEO title, meta description) for a specific product with known attributes, which matches WF004 Product Description Generator.",
+    "confidence": 1.0,
+    "result": {
+      "description": "A classic white cotton T-shirt designed for adults, featuring a comfortable round neck.",
+      "short_description": "White cotton round neck T-shirt for adults.",
+      "seo_title": "White Cotton T-Shirt for Adults | Round Neck",
+      "meta_description": "Shop the classic white cotton T-shirt for adults featuring a comfortable round neck. Made from soft cotton.",
+      "missing_information": [],
+      "review_note": "Review generated prose for factual accuracy before publishing"
+    },
+    "duration_ms": 29738.119,
+    "requested_workflow_id": "WF004"
   },
   {
-    "run_id": "cb3046e88567433f943ad200511d32a0",
+    "run_id": "fc500dd742694e779af428eb7f87c1f9",
     "mode": "live_llm",
     "request": "Where is order ORD-1001?",
     "workflow_id": "WF005",
@@ -276,7 +505,7 @@
           "order_id": "ORD-1001",
           "customer_email": null
         },
-        "duration_ms": 0.866
+        "duration_ms": 0.806
       },
       {
         "name": "Search simulated order API",
@@ -296,7 +525,7 @@
             ]
           }
         ],
-        "duration_ms": 1.447
+        "duration_ms": 1.872
       },
       {
         "name": "Retrieve shipment information",
@@ -322,7 +551,7 @@
             }
           }
         ],
-        "duration_ms": 0.49
+        "duration_ms": 0.662
       },
       {
         "name": "Summarize order status, items and tracking",
@@ -350,11 +579,11 @@
           ],
           "source": "simulated order/shipment API fixtures"
         },
-        "duration_ms": 0.012
+        "duration_ms": 0.011
       }
     ],
-    "selection_attempts": 2,
-    "selection_reason": "The user is requesting the status/location of a specific order ID (ORD-1001), which directly matches workflow WF005 (Customer Order Status).",
+    "selection_attempts": 1,
+    "selection_reason": "The user is asking for the status and location of a specific order (ORD-1001), which matches the Customer Order Status workflow (WF005).",
     "confidence": 1.0,
     "result": {
       "orders": [
@@ -377,27 +606,226 @@
       ],
       "source": "simulated order/shipment API fixtures"
     },
-    "duration_ms": 19550.483
+    "duration_ms": 15506.931,
+    "requested_workflow_id": "WF005"
   },
   {
-    "run_id": "2f53f4c0b4c64496bead83209aff15ae",
+    "run_id": "cb9e9d8d7fa444d3a255937190071df9",
     "mode": "live_llm",
     "request": "Find likely duplicate products in the catalog.",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "error",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "Gemini temporarily unavailable (HTTP 503); check quota or retry",
-    "duration_ms": 81909.308
+    "workflow_id": "WF006",
+    "selected_workflow": "Duplicate Product Detection",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load product catalog",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "A1",
+            "product_name": "Cotton T-Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": " a1 ",
+            "product_name": "Cotton Tee",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": "A2",
+            "product_name": "Cotton T Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white"
+          },
+          {
+            "sku": "B1",
+            "product_name": "Steel Bottle",
+            "category": "accessories",
+            "material": "steel",
+            "color": "blue"
+          }
+        ],
+        "duration_ms": 1.847
+      },
+      {
+        "name": "Normalize product names and SKUs",
+        "tool": "normalize_products",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "sku": "A1",
+            "product_name": "Cotton T-Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a1",
+            "normalized_name": "cotton t-shirt"
+          },
+          {
+            "sku": " a1 ",
+            "product_name": "Cotton Tee",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a1",
+            "normalized_name": "cotton tee"
+          },
+          {
+            "sku": "A2",
+            "product_name": "Cotton T Shirt",
+            "category": "clothing",
+            "material": "cotton",
+            "color": "white",
+            "normalized_sku": "a2",
+            "normalized_name": "cotton t shirt"
+          },
+          {
+            "sku": "B1",
+            "product_name": "Steel Bottle",
+            "category": "accessories",
+            "material": "steel",
+            "color": "blue",
+            "normalized_sku": "b1",
+            "normalized_name": "steel bottle"
+          }
+        ],
+        "duration_ms": 0.107
+      },
+      {
+        "name": "Compare identifiers and attributes, group duplicates and assign confidence",
+        "tool": "duplicate_groups",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "duplicate_groups": [
+            {
+              "products": [
+                {
+                  "row_number": 2,
+                  "sku": "A1",
+                  "product_name": "Cotton T-Shirt"
+                },
+                {
+                  "row_number": 3,
+                  "sku": " a1 ",
+                  "product_name": "Cotton Tee"
+                },
+                {
+                  "row_number": 4,
+                  "sku": "A2",
+                  "product_name": "Cotton T Shirt"
+                }
+              ],
+              "pair_evidence": [
+                {
+                  "rows": [
+                    2,
+                    3
+                  ],
+                  "matching_fields": [
+                    "sku"
+                  ],
+                  "confidence": 1,
+                  "level": "definite"
+                },
+                {
+                  "rows": [
+                    2,
+                    4
+                  ],
+                  "matching_fields": [
+                    "product_name",
+                    "category",
+                    "material",
+                    "color"
+                  ],
+                  "confidence": 0.929,
+                  "level": "possible"
+                }
+              ],
+              "confidence": 0.929,
+              "level": "possible"
+            }
+          ],
+          "note": "Similarity groups are connected candidate pairs; review before merging"
+        },
+        "duration_ms": 0.993
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user is asking to find likely duplicate products in the catalog, which directly matches the trigger and description for Workflow WF006 (Duplicate Product Detection).",
+    "confidence": 1.0,
+    "result": {
+      "duplicate_groups": [
+        {
+          "products": [
+            {
+              "row_number": 2,
+              "sku": "A1",
+              "product_name": "Cotton T-Shirt"
+            },
+            {
+              "row_number": 3,
+              "sku": " a1 ",
+              "product_name": "Cotton Tee"
+            },
+            {
+              "row_number": 4,
+              "sku": "A2",
+              "product_name": "Cotton T Shirt"
+            }
+          ],
+          "pair_evidence": [
+            {
+              "rows": [
+                2,
+                3
+              ],
+              "matching_fields": [
+                "sku"
+              ],
+              "confidence": 1,
+              "level": "definite"
+            },
+            {
+              "rows": [
+                2,
+                4
+              ],
+              "matching_fields": [
+                "product_name",
+                "category",
+                "material",
+                "color"
+              ],
+              "confidence": 0.929,
+              "level": "possible"
+            }
+          ],
+          "confidence": 0.929,
+          "level": "possible"
+        }
+      ],
+      "note": "Similarity groups are connected candidate pairs; review before merging"
+    },
+    "duration_ms": 14436.688,
+    "requested_workflow_id": "WF006"
   },
   {
-    "run_id": "c5cba2894fae4bd8a4cfe4d55d003180",
+    "run_id": "adb8b7718ce64ad8a31dcdab5f454c44",
     "mode": "live_llm",
     "request": "Create a campaign brief for the new collection.",
     "workflow_id": "WF007",
     "selected_workflow": "Marketing Campaign Brief",
-    "status": "error",
+    "status": "success",
     "steps": [
       {
         "name": "Validate campaign goal and dates, summarize products",
@@ -413,56 +841,953 @@
           "target_audience": "Adults",
           "promotion": "10% off"
         },
-        "duration_ms": 0.033
+        "duration_ms": 0.016
       },
       {
         "name": "Create objective, messaging, channels, timeline and checklist",
         "tool": "generate_campaign",
-        "status": "error",
-        "attempts": 3,
-        "duration_ms": 2345.825
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "objective": "Introduce the summer collection with 10% off",
+          "audience": "Adults",
+          "products": [
+            "Cotton T-shirt"
+          ],
+          "messaging": "Discover the summer collection featuring the Cotton T-shirt with 10% off.",
+          "channels": [
+            "Email",
+            "Social Media"
+          ],
+          "timeline": "2026-10-15 to 2026-10-21",
+          "checklist": [
+            "Finalize product listings",
+            "Schedule social media posts",
+            "Send email newsletter"
+          ],
+          "missing_information": []
+        },
+        "duration_ms": 15219.403
       }
     ],
     "selection_attempts": 1,
-    "selection_reason": "User is asking to create a marketing campaign brief, matching WF007. No specific campaign goal, dates, or other parameters were provided.",
-    "confidence": 0.95,
-    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
-    "duration_ms": 48134.339
+    "selection_reason": "The user is asking to create a campaign brief, which directly matches the Marketing Campaign Brief workflow (WF007) and provides all required inputs.",
+    "confidence": 1.0,
+    "result": {
+      "objective": "Introduce the summer collection with 10% off",
+      "audience": "Adults",
+      "products": [
+        "Cotton T-shirt"
+      ],
+      "messaging": "Discover the summer collection featuring the Cotton T-shirt with 10% off.",
+      "channels": [
+        "Email",
+        "Social Media"
+      ],
+      "timeline": "2026-10-15 to 2026-10-21",
+      "checklist": [
+        "Finalize product listings",
+        "Schedule social media posts",
+        "Send email newsletter"
+      ],
+      "missing_information": []
+    },
+    "duration_ms": 30712.734,
+    "requested_workflow_id": "WF007"
   },
   {
-    "run_id": "836d2f8b04704cbea956b0935dba5264",
+    "run_id": "bb04b57f97924d17bf9f8bc00ca6c237",
     "mode": "live_llm",
     "request": "Classify these keywords and map them to pages.",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "error",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
-    "duration_ms": 1533.436
+    "workflow_id": "WF008",
+    "selected_workflow": "SEO Keyword Classification",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Read keyword list",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "keyword": "buy cotton shirt"
+          },
+          {
+            "keyword": "best cotton shirt"
+          },
+          {
+            "keyword": "how to wash cotton shirt"
+          },
+          {
+            "keyword": "Brand official website"
+          },
+          {
+            "keyword": " Buy Cotton Shirt "
+          },
+          {
+            "keyword": "blue mug discount"
+          }
+        ],
+        "duration_ms": 1.605
+      },
+      {
+        "name": "Remove duplicate and empty keywords",
+        "tool": "deduplicate_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          "buy cotton shirt",
+          "best cotton shirt",
+          "how to wash cotton shirt",
+          "Brand official website",
+          "blue mug discount"
+        ],
+        "duration_ms": 0.06
+      },
+      {
+        "name": "Classify intent, map categories, prioritize and recommend target pages",
+        "tool": "classify_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "keyword": "buy cotton shirt",
+            "intent": "transactional",
+            "category": "clothing",
+            "priority": "high",
+            "target_page": "/categories/clothing"
+          },
+          {
+            "keyword": "best cotton shirt",
+            "intent": "commercial",
+            "category": "clothing",
+            "priority": "medium",
+            "target_page": "/categories/clothing"
+          },
+          {
+            "keyword": "how to wash cotton shirt",
+            "intent": "informational",
+            "category": "clothing",
+            "priority": "low",
+            "target_page": "/blog/shirt-care"
+          },
+          {
+            "keyword": "Brand official website",
+            "intent": "navigational",
+            "category": "unmapped",
+            "priority": "high",
+            "target_page": "/"
+          },
+          {
+            "keyword": "blue mug discount",
+            "intent": "commercial",
+            "category": "home",
+            "priority": "medium",
+            "target_page": "/categories/home"
+          }
+        ],
+        "duration_ms": 14745.437
+      },
+      {
+        "name": "Export keyword report",
+        "tool": "export_keywords",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "keywords": [
+            {
+              "keyword": "buy cotton shirt",
+              "intent": "transactional",
+              "category": "clothing",
+              "priority": "high",
+              "target_page": "/categories/clothing"
+            },
+            {
+              "keyword": "best cotton shirt",
+              "intent": "commercial",
+              "category": "clothing",
+              "priority": "medium",
+              "target_page": "/categories/clothing"
+            },
+            {
+              "keyword": "how to wash cotton shirt",
+              "intent": "informational",
+              "category": "clothing",
+              "priority": "low",
+              "target_page": "/blog/shirt-care"
+            },
+            {
+              "keyword": "Brand official website",
+              "intent": "navigational",
+              "category": "unmapped",
+              "priority": "high",
+              "target_page": "/"
+            },
+            {
+              "keyword": "blue mug discount",
+              "intent": "commercial",
+              "category": "home",
+              "priority": "medium",
+              "target_page": "/categories/home"
+            }
+          ],
+          "file": "/Users/harshikathakur/ai-workflow-agent/runs/bb04b57f97924d17bf9f8bc00ca6c237/keywords.csv",
+          "generation_attempts": 1
+        },
+        "duration_ms": 1.354
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user wants to classify keywords and map them to pages, which directly matches the SEO Keyword Classification workflow (WF008).",
+    "confidence": 1.0,
+    "result": {
+      "keywords": [
+        {
+          "keyword": "buy cotton shirt",
+          "intent": "transactional",
+          "category": "clothing",
+          "priority": "high",
+          "target_page": "/categories/clothing"
+        },
+        {
+          "keyword": "best cotton shirt",
+          "intent": "commercial",
+          "category": "clothing",
+          "priority": "medium",
+          "target_page": "/categories/clothing"
+        },
+        {
+          "keyword": "how to wash cotton shirt",
+          "intent": "informational",
+          "category": "clothing",
+          "priority": "low",
+          "target_page": "/blog/shirt-care"
+        },
+        {
+          "keyword": "Brand official website",
+          "intent": "navigational",
+          "category": "unmapped",
+          "priority": "high",
+          "target_page": "/"
+        },
+        {
+          "keyword": "blue mug discount",
+          "intent": "commercial",
+          "category": "home",
+          "priority": "medium",
+          "target_page": "/categories/home"
+        }
+      ],
+      "file": "/Users/harshikathakur/ai-workflow-agent/runs/bb04b57f97924d17bf9f8bc00ca6c237/keywords.csv",
+      "generation_attempts": 1
+    },
+    "duration_ms": 29598.635,
+    "requested_workflow_id": "WF008"
   },
   {
-    "run_id": "3e9703c0e8514312943e60d2c410fd77",
+    "run_id": "1726840cde164cc68560f1d461974299",
     "mode": "live_llm",
     "request": "Assign this urgent task to the best available developer.",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "error",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
-    "duration_ms": 1841.513
+    "workflow_id": "WF009",
+    "selected_workflow": "Employee Task Assignment",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load employee skills and workload",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "employee_id": "E01",
+            "name": "Asha",
+            "skills": "python;api;sql",
+            "workload": "3",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E02",
+            "name": "Rohan",
+            "skills": "python;api",
+            "workload": "5",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E03",
+            "name": "Neha",
+            "skills": "react;css",
+            "workload": "1",
+            "capacity": "5"
+          },
+          {
+            "employee_id": "E04",
+            "name": "Dev",
+            "skills": "python;api;sql",
+            "workload": "1",
+            "capacity": "5"
+          }
+        ],
+        "duration_ms": 1.627
+      },
+      {
+        "name": "Compare required skills, check capacity and rank candidates",
+        "tool": "rank_employees",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "employee_id": "E04",
+            "name": "Dev",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 4.0,
+            "eligible": true
+          },
+          {
+            "employee_id": "E01",
+            "name": "Asha",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 2.0,
+            "eligible": true
+          },
+          {
+            "employee_id": "E02",
+            "name": "Rohan",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 0.0,
+            "eligible": false
+          },
+          {
+            "employee_id": "E03",
+            "name": "Neha",
+            "matched_skills": [],
+            "missing_skills": [
+              "api",
+              "python"
+            ],
+            "available_capacity": 4.0,
+            "eligible": false
+          }
+        ],
+        "duration_ms": 0.145
+      },
+      {
+        "name": "Recommend employee or escalate; generate assignment summary",
+        "tool": "recommend_assignment",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "escalated": false,
+          "recommended_employee": {
+            "employee_id": "E04",
+            "name": "Dev",
+            "matched_skills": [
+              "api",
+              "python"
+            ],
+            "missing_skills": [],
+            "available_capacity": 4.0,
+            "eligible": true
+          },
+          "reason": "All required skills match; greatest available capacity among eligible employees",
+          "priority": "urgent",
+          "deadline": "2026-10-14",
+          "task_summary": "Build a Python API integration",
+          "candidates": [
+            {
+              "employee_id": "E04",
+              "name": "Dev",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 4.0,
+              "eligible": true
+            },
+            {
+              "employee_id": "E01",
+              "name": "Asha",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 2.0,
+              "eligible": true
+            },
+            {
+              "employee_id": "E02",
+              "name": "Rohan",
+              "matched_skills": [
+                "api",
+                "python"
+              ],
+              "missing_skills": [],
+              "available_capacity": 0.0,
+              "eligible": false
+            },
+            {
+              "employee_id": "E03",
+              "name": "Neha",
+              "matched_skills": [],
+              "missing_skills": [
+                "api",
+                "python"
+              ],
+              "available_capacity": 4.0,
+              "eligible": false
+            }
+          ],
+          "action": "recommendation only; task database not modified"
+        },
+        "duration_ms": 0.016
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user's request is to assign an urgent task with specific requirements and skills, which matches the Employee Task Assignment workflow (WF009).",
+    "confidence": 1.0,
+    "result": {
+      "escalated": false,
+      "recommended_employee": {
+        "employee_id": "E04",
+        "name": "Dev",
+        "matched_skills": [
+          "api",
+          "python"
+        ],
+        "missing_skills": [],
+        "available_capacity": 4.0,
+        "eligible": true
+      },
+      "reason": "All required skills match; greatest available capacity among eligible employees",
+      "priority": "urgent",
+      "deadline": "2026-10-14",
+      "task_summary": "Build a Python API integration",
+      "candidates": [
+        {
+          "employee_id": "E04",
+          "name": "Dev",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 4.0,
+          "eligible": true
+        },
+        {
+          "employee_id": "E01",
+          "name": "Asha",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 2.0,
+          "eligible": true
+        },
+        {
+          "employee_id": "E02",
+          "name": "Rohan",
+          "matched_skills": [
+            "api",
+            "python"
+          ],
+          "missing_skills": [],
+          "available_capacity": 0.0,
+          "eligible": false
+        },
+        {
+          "employee_id": "E03",
+          "name": "Neha",
+          "matched_skills": [],
+          "missing_skills": [
+            "api",
+            "python"
+          ],
+          "available_capacity": 4.0,
+          "eligible": false
+        }
+      ],
+      "action": "recommendation only; task database not modified"
+    },
+    "duration_ms": 14947.569,
+    "requested_workflow_id": "WF009"
   },
   {
-    "run_id": "e9b8b1eaf38f4a27ab99d630baabe53b",
+    "run_id": "39ea7c3f6f0e44778cad242e263d6228",
     "mode": "live_llm",
     "request": "Which workflows are failing most often?",
-    "workflow_id": null,
-    "selected_workflow": null,
-    "status": "error",
-    "steps": [],
-    "selection_attempts": 2,
-    "message": "Gemini temporarily unavailable (HTTP 429); check quota or retry",
-    "duration_ms": 1534.156
+    "workflow_id": "WF010",
+    "selected_workflow": "Workflow Performance Report",
+    "status": "success",
+    "steps": [
+      {
+        "name": "Load execution logs",
+        "tool": "read_rows",
+        "status": "success",
+        "attempts": 1,
+        "output": [
+          {
+            "workflow_id": "WF001",
+            "status": "failure",
+            "duration_ms": 500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF001",
+            "status": "success",
+            "duration_ms": 500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "failure",
+            "duration_ms": 1500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "failure",
+            "duration_ms": 1500,
+            "error": "upstream_timeout",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF002",
+            "status": "success",
+            "duration_ms": 1500,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1500
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          },
+          {
+            "workflow_id": "WF004",
+            "status": "success",
+            "duration_ms": 1200,
+            "error": "",
+            "steps": [
+              {
+                "name": "fetch_data",
+                "duration_ms": 1200
+              }
+            ]
+          }
+        ],
+        "duration_ms": 1.612
+      },
+      {
+        "name": "Calculate rates, execution times, errors and slow steps; flag problems",
+        "tool": "performance_metrics",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "workflows": [
+            {
+              "workflow_id": "WF001",
+              "execution_count": 10,
+              "completed_count": 10,
+              "needs_input_count": 0,
+              "failure_rate": 0.1,
+              "success_rate": 0.9,
+              "average_execution_ms": 500.0,
+              "frequent_errors": {
+                "upstream_timeout": 1
+              },
+              "slow_steps": [],
+              "flagged": false
+            },
+            {
+              "workflow_id": "WF002",
+              "execution_count": 5,
+              "completed_count": 5,
+              "needs_input_count": 0,
+              "failure_rate": 0.4,
+              "success_rate": 0.6,
+              "average_execution_ms": 1500.0,
+              "frequent_errors": {
+                "upstream_timeout": 2
+              },
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1500.0
+                }
+              ],
+              "flagged": true
+            },
+            {
+              "workflow_id": "WF004",
+              "execution_count": 4,
+              "completed_count": 4,
+              "needs_input_count": 0,
+              "failure_rate": 0.0,
+              "success_rate": 1.0,
+              "average_execution_ms": 1200.0,
+              "frequent_errors": {},
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1200.0
+                }
+              ],
+              "flagged": true
+            }
+          ],
+          "slow_threshold_ms": 1000.0,
+          "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded"
+        },
+        "duration_ms": 0.245
+      },
+      {
+        "name": "Generate improvement recommendations",
+        "tool": "performance_recommendations",
+        "status": "success",
+        "attempts": 1,
+        "output": {
+          "workflows": [
+            {
+              "workflow_id": "WF001",
+              "execution_count": 10,
+              "completed_count": 10,
+              "needs_input_count": 0,
+              "failure_rate": 0.1,
+              "success_rate": 0.9,
+              "average_execution_ms": 500.0,
+              "frequent_errors": {
+                "upstream_timeout": 1
+              },
+              "slow_steps": [],
+              "flagged": false
+            },
+            {
+              "workflow_id": "WF002",
+              "execution_count": 5,
+              "completed_count": 5,
+              "needs_input_count": 0,
+              "failure_rate": 0.4,
+              "success_rate": 0.6,
+              "average_execution_ms": 1500.0,
+              "frequent_errors": {
+                "upstream_timeout": 2
+              },
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1500.0
+                }
+              ],
+              "flagged": true
+            },
+            {
+              "workflow_id": "WF004",
+              "execution_count": 4,
+              "completed_count": 4,
+              "needs_input_count": 0,
+              "failure_rate": 0.0,
+              "success_rate": 1.0,
+              "average_execution_ms": 1200.0,
+              "frequent_errors": {},
+              "slow_steps": [
+                {
+                  "name": "fetch_data",
+                  "average_ms": 1200.0
+                }
+              ],
+              "flagged": true
+            }
+          ],
+          "slow_threshold_ms": 1000.0,
+          "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded",
+          "recommendations": [
+            {
+              "workflow_id": "WF002",
+              "actions": [
+                "Investigate frequent errors: upstream_timeout",
+                "Profile slow tools; consider caching or batching"
+              ]
+            },
+            {
+              "workflow_id": "WF004",
+              "actions": [
+                "Profile slow tools; consider caching or batching"
+              ]
+            }
+          ]
+        },
+        "duration_ms": 0.019
+      }
+    ],
+    "selection_attempts": 1,
+    "selection_reason": "The user is asking which workflows are failing most often, which matches the Workflow Performance Report workflow (WF010).",
+    "confidence": 1.0,
+    "result": {
+      "workflows": [
+        {
+          "workflow_id": "WF001",
+          "execution_count": 10,
+          "completed_count": 10,
+          "needs_input_count": 0,
+          "failure_rate": 0.1,
+          "success_rate": 0.9,
+          "average_execution_ms": 500.0,
+          "frequent_errors": {
+            "upstream_timeout": 1
+          },
+          "slow_steps": [],
+          "flagged": false
+        },
+        {
+          "workflow_id": "WF002",
+          "execution_count": 5,
+          "completed_count": 5,
+          "needs_input_count": 0,
+          "failure_rate": 0.4,
+          "success_rate": 0.6,
+          "average_execution_ms": 1500.0,
+          "frequent_errors": {
+            "upstream_timeout": 2
+          },
+          "slow_steps": [
+            {
+              "name": "fetch_data",
+              "average_ms": 1500.0
+            }
+          ],
+          "flagged": true
+        },
+        {
+          "workflow_id": "WF004",
+          "execution_count": 4,
+          "completed_count": 4,
+          "needs_input_count": 0,
+          "failure_rate": 0.0,
+          "success_rate": 1.0,
+          "average_execution_ms": 1200.0,
+          "frequent_errors": {},
+          "slow_steps": [
+            {
+              "name": "fetch_data",
+              "average_ms": 1200.0
+            }
+          ],
+          "flagged": true
+        }
+      ],
+      "slow_threshold_ms": 1000.0,
+      "rule": "Failure rate > 10% OR average duration > threshold; needs_input excluded",
+      "recommendations": [
+        {
+          "workflow_id": "WF002",
+          "actions": [
+            "Investigate frequent errors: upstream_timeout",
+            "Profile slow tools; consider caching or batching"
+          ]
+        },
+        {
+          "workflow_id": "WF004",
+          "actions": [
+            "Profile slow tools; consider caching or batching"
+          ]
+        }
+      ]
+    },
+    "duration_ms": 14752.458,
+    "requested_workflow_id": "WF010"
   }
 ]
