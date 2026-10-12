@@ -2,24 +2,53 @@
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Excel Workflow Agent</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f2f5fa;color:#152239;font:16px system-ui,sans-serif}header{background:#10243c;color:white;padding:30px max(24px,calc((100vw - 1160px)/2))}header p{color:#b7ccdf}main{max-width:1160px;margin:28px auto;padding:0 20px;display:grid;grid-template-columns:340px 1fr;gap:22px}.card{background:white;border:1px solid #dbe3ee;border-radius:14px;padding:22px;margin-bottom:20px}h1{margin:0;font-size:30px}h2{font-size:19px;margin:0 0 15px}.badge{display:inline-block;padding:5px 12px;border-radius:30px;background:#dbf1f2;color:#12575e;font-size:13px}.badge.error{background:#ffe5e5;color:#a02525}.badge.needs_input{background:#fff0c9;color:#795600}button,select,textarea{font:inherit}button{background:#1657c3;color:white;border:0;border-radius:8px;padding:11px 16px;cursor:pointer}button:disabled{opacity:.5}select,textarea{width:100%;border:1px solid #bdc9d9;border-radius:8px;padding:11px;background:white;margin:8px 0 18px}textarea{min-height:85px}#inputs{font:13px ui-monospace,monospace;min-height:185px}label{font-size:14px;font-weight:650}pre{white-space:pre-wrap;word-break:break-word;background:#f3f6fa;padding:16px;border-radius:8px;font-size:13px;max-height:500px;overflow:auto}.step{padding:11px 0;border-bottom:1px solid #edf0f5}.meta{color:#65748a;font-size:13px}#status{margin-bottom:14px}.small{font-size:14px;color:#57667b;line-height:1.6}@media(max-width:800px){main{display:block}header{padding:25px}}
-</style></head><body><header><h1>Excel Workflow Agent</h1><p>One agent · 10 workflows · Traceable execution</p><span id="mode" class="badge">Loading…</span></header><main><aside><div class="card"><h2>Workflow catalog</h2><label for="examples">Workflow input template</label><select id="examples"><option value="">Custom request — detect input fields</option></select><button id="sample" hidden>Fill with sample data</button><div id="catalog"></div></div><div class="card small">Use a blank template for your own data, or fill it with sample values. Optional file fields use sample data when blank. Order APIs are simulated. Generated content requires review.</div></aside><section><div class="card"><h2>Ask the agent</h2><label for="request">User request</label><textarea id="request" placeholder="Which products need restocking?"></textarea><label for="inputs">Business inputs (JSON)</label><p id="input-note" class="small">Choose a workflow template, or type your request and click Find input fields.</p><div id="input-help" class="small"></div><textarea id="inputs">{}</textarea><button id="prepare">Find input fields</button> <button id="run">Run workflow</button><span id="wait" class="meta"></span></div><div class="card"><h2>Execution trace</h2><div id="status">Run a workflow to see the selected workflow and steps.</div><div id="reason" class="small"></div><div id="steps"></div></div><div class="card"><h2>Final result</h2><pre id="result">No result yet.</pre><button id="download" hidden>Download execution JSON</button></div></section></main><script>
-const el=id=>document.getElementById(id);let examples=[],guides={},latest=null;
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:16px 0}.field.wide{grid-column:1/-1}.field label{text-transform:capitalize}.field input{width:100%;font:inherit;border:1px solid #bdc9d9;border-radius:8px;padding:11px;margin:8px 0}.field textarea{min-height:90px;margin-bottom:6px}.optional-fields,details#advanced{border:1px solid #dbe3ee;border-radius:8px;padding:14px;margin:16px 0}summary{cursor:pointer;font-weight:600}.mapping-row{display:grid;grid-template-columns:1fr 2fr auto;gap:8px;align-items:center}.secondary{background:#e8eef7;color:#173f73;font-size:13px;padding:9px 12px}#input-errors{color:#a02525;font-size:14px}#advanced p{margin:12px 0}.buttons{display:flex;gap:10px;align-items:center;flex-wrap:wrap}@media(max-width:650px){.form-grid,.mapping-row{grid-template-columns:1fr}.field.wide{grid-column:auto}}
+</style></head><body>
+<header><h1>Excel Workflow Agent</h1><p id="workflow-count">One agent · Traceable execution</p><span id="mode" class="badge">Loading…</span></header>
+<main><aside>
+<div class="card"><h2>Workflow catalog</h2><label for="examples">Choose input fields</label><select id="examples"><option value="">Custom request — find input fields</option></select><button id="sample" hidden>Fill with sample data</button><div id="catalog"></div></div>
+<div class="card small">Fill the fields for your own request, or use sample values. Optional file fields use sample data when blank. Order APIs are simulated. Generated content requires review.</div>
+</aside><section>
+<div class="card"><h2>Ask the agent</h2><label for="request">User request</label><textarea id="request" placeholder="Which products need restocking?"></textarea>
+<p id="input-note" class="small">Choose a workflow, or type your request and click Find input fields.</p>
+<div id="fields-container"></div><p id="input-errors" role="alert"></p>
+<details id="advanced"><summary>Advanced: business inputs as JSON</summary><p class="small">The fields above and this JSON describe the same inputs. You can edit either view. Required fields can also be supplied in your request.</p><label for="inputs">Business inputs (JSON)</label><textarea id="inputs">{}</textarea><button id="apply-json" class="secondary">Apply JSON to fields</button></details>
+<div class="buttons"><button id="prepare">Find input fields</button><button id="run">Run workflow</button><span id="wait" class="meta"></span></div></div>
+<div class="card"><h2>Execution trace</h2><div id="status">Run a workflow to see the selected workflow and steps.</div><div id="reason" class="small"></div><div id="steps"></div></div>
+<div class="card"><h2>Final result</h2><pre id="result">No result yet.</pre><button id="download" hidden>Download execution JSON</button></div>
+</section></main><script src="/static/input_forms.js"></script><script>
+const el=id=>document.getElementById(id);let examples=[],guides={},latest=null,readForm=()=>({}),jsonDirty=false,extraInputs={};
+
+function syncJSON(){
+  try{el('inputs').value=JSON.stringify({...extraInputs,...readForm()},null,2);jsonDirty=false;el('input-errors').textContent='';}
+  catch(e){el('input-errors').textContent=e.message;}
+}
+
+function parsedJSON(){
+  const value=JSON.parse(el('inputs').value);
+  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Business inputs must be a JSON object');
+  return value;
+}
+
+function collectInputs(){
+  if(jsonDirty){const value=parsedJSON();const wid=el('examples').value;if(wid)showGuide(wid,value);return value;}
+  return {...extraInputs,...readForm()};
+}
 
 function showGuide(wid,values){
   const guide=guides[wid]||{};
   el('examples').value=wid;el('sample').hidden=!examples.some(e=>e.workflow_id===wid);
-  el('inputs').value=JSON.stringify(values||guide.input_template||{},null,2);
+  values=values||guide.input_template||{};
+  extraInputs=Object.fromEntries(Object.entries(values).filter(([key])=>!(key in (guide.input_template||{}))));
   el('input-note').textContent=guide.input_note||'Complete the fields relevant to your request. Blank placeholders are ignored.';
-  el('input-help').replaceChildren();
-  for(const [key,hint] of Object.entries(guide.input_help||{})){
-    const p=document.createElement('p');const name=document.createElement('strong');
-    name.textContent=key+((guide.required_fields||[]).includes(key)?' — required': '');
-    p.append(name,document.createTextNode(': '+hint));el('input-help').append(p);
-  }
+  readForm=InputForms.build(el('fields-container'),guide,values,syncJSON);
+  syncJSON();
+  if(el('run').disabled)for(const field of el('fields-container').querySelectorAll('input,textarea,button'))field.disabled=true;
 }
 
 fetch('/api/catalog').then(r=>r.json()).then(data=>{
   examples=data.examples;guides=data.input_guides;
+  el('workflow-count').textContent='One agent · '+data.workflows.length+' workflows · Traceable execution';
   el('mode').textContent=data.mode==='live_llm'?'Live Gemini mode':'Offline demo — no LLM calls';
   for(const w of data.workflows){
     const o=document.createElement('option');o.value=w.Workflow_ID;o.textContent=w.Workflow_ID+' · '+w.Workflow_Name;el('examples').append(o);
@@ -29,17 +58,24 @@ fetch('/api/catalog').then(r=>r.json()).then(data=>{
 
 el('examples').onchange=()=>{
   const wid=el('examples').value;
-  if(!wid){el('inputs').value='{}';el('input-help').replaceChildren();el('input-note').textContent='Type your request and click Find input fields.';el('sample').hidden=true;return;}
+  if(!wid){readForm=()=>({});extraInputs={};syncJSON();el('fields-container').replaceChildren();el('input-note').textContent='Type your request and click Find input fields.';el('sample').hidden=true;return;}
   const example=examples.find(e=>e.workflow_id===wid);if(example)el('request').value=example.request;
   showGuide(wid);
 };
 el('sample').onclick=()=>{const e=examples.find(e=>e.workflow_id===el('examples').value);if(e){el('request').value=e.request;showGuide(e.workflow_id,{...guides[e.workflow_id].input_template,...e.inputs});}};
+el('inputs').oninput=()=>{jsonDirty=true;};
+el('apply-json').onclick=()=>{try{const value=parsedJSON(),wid=el('examples').value;if(wid)showGuide(wid,value);else{extraInputs=value;readForm=()=>({});syncJSON();}el('input-errors').textContent='';}catch(e){el('input-errors').textContent=e.message;}};
+
+function setBusy(busy){
+  for(const id of ['run','prepare','sample','examples','request','inputs','apply-json'])el(id).disabled=busy;
+  for(const field of el('fields-container').querySelectorAll('input,textarea,button'))field.disabled=busy;
+}
 
 async function send(action){
-  for(const id of ['run','prepare','sample','examples'])el(id).disabled=true;
+  setBusy(true);
   el('wait').textContent=action==='prepare'?' Identifying input fields…':' Running…';
   try{
-    const inputs=JSON.parse(el('inputs').value);
+    const inputs=collectInputs();
     const response=await fetch('/api/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:el('request').value,inputs})});
     const data=await response.json();if(!response.ok)throw Error(data.error);
     latest=action==='run'?data:null;el('download').hidden=action!=='run';
@@ -52,13 +88,13 @@ async function send(action){
       const meta=document.createElement('div');meta.className='meta';meta.textContent=s.tool+' · '+s.duration_ms+' ms · attempts '+(s.attempts||0);row.append(meta);el('steps').append(row);
     }
     if(data.input_template&&(action==='prepare'||data.status==='needs_input')){
-      guides[data.workflow_id]={input_template:data.input_template,input_help:data.input_help,required_fields:data.required_fields,input_note:data.input_note};
+      guides[data.workflow_id]={...(guides[data.workflow_id]||{}),input_template:(guides[data.workflow_id]||{}).input_template||data.input_template,input_help:data.input_help,required_fields:data.required_fields,required_any:data.required_any,input_types:data.input_types,input_note:data.input_note};
       showGuide(data.workflow_id,data.input_template);
     }
     if(data.status==='ready'){el('result').textContent='Input fields are ready. Fill the required values, then click Run workflow. No business tools have run yet.';}
     else{el('result').textContent=JSON.stringify(data.result||{message:data.message},null,2);}
-  }catch(e){el('result').textContent=e.message;}
-  finally{for(const id of ['run','prepare','sample','examples'])el(id).disabled=false;el('wait').textContent='';}
+  }catch(e){el('result').textContent=e.message;el('input-errors').textContent=e.message;}
+  finally{setBusy(false);el('wait').textContent='';}
 }
 el('run').onclick=()=>send('run');el('prepare').onclick=()=>send('prepare');
 el('download').onclick=()=>{if(!latest)return;const url=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='workflow-'+latest.run_id+'.json';a.click();URL.revokeObjectURL(url)};

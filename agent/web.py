@@ -19,6 +19,8 @@ def serve(engine, port):
         def do_GET(self):
             if self.path == "/":
                 self.send(200, (ROOT / "agent/ui.html").read_text(), "text/html")
+            elif self.path == "/static/input_forms.js":
+                self.send(200, (ROOT / "agent/input_forms.js").read_text(), "text/javascript")
             elif self.path == "/api/catalog":
                 self.send(200, json.dumps({"mode": engine.backend.mode, "workflows": [d["source"] for d in engine.catalog.workflows.values()], "input_guides": {wid: engine.input_guide(wid) for wid in engine.catalog.workflows}, "examples": json.loads((ROOT / "examples/requests.json").read_text())}))
             else:

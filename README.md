@@ -11,7 +11,7 @@ pip install -r requirements.txt
 python -m agent --mode demo serve
 ```
 
-Open **http://127.0.0.1:8000**. Choose a **Workflow input template** to see blank fields and required-field help. Use **Fill with sample data** to load a runnable example, or enter your own values and click **Run workflow**. For a custom request, **Find input fields** asks the agent to identify the workflow and show its template without running business tools. The page displays the selected workflow, short selection explanation, tool calls, durations, final result and a downloadable execution JSON.
+Open **http://127.0.0.1:8000**. Choose a workflow under **Choose input fields** to see a normal form: required fields first, optional details collapsed, and JSON available under Advanced. Use **Fill with sample data** to load a runnable example, or enter your own values and click **Run workflow**. For a custom request, **Find input fields** asks the agent to identify the workflow and show its template without running business tools. The page displays the selected workflow, short selection explanation, tool calls, durations, final result and a downloadable execution JSON.
 
 Windows activation: `.venv\Scripts\activate`.
 
@@ -51,7 +51,7 @@ SSL read timeouts are converted into an actionable Gemini error, rather than the
 
 ### Guided business inputs
 
-Each reviewed workflow definition includes `input_template`, `input_help` and `input_note`. The catalog endpoint supplies these to the UI. Empty strings, nulls, empty arrays and empty objects are placeholders and are removed before routing and execution; numeric zero is preserved. Blank optional file fields use the documented sample files. A missing-input response contains the same template so users can complete it without opening the source code.
+Each reviewed workflow definition includes `input_template`, `input_help` and `input_note`; `required` lists mandatory fields and `required_any` expresses alternatives such as order ID or email. The backend derives field types from template values. One shared browser renderer (`agent/input_forms.js`) creates text/number fields, lists entered one item per line, and editable category-to-term rows. There are no separate forms hard-coded by workflow ID. Form edits and Advanced JSON stay synchronized; edited JSON is parsed before it can be submitted. Server-side validation remains authoritative, and fields stated in the natural-language request can satisfy required inputs after routing. The catalog endpoint supplies these to the UI. Empty strings, nulls, empty arrays and empty objects are placeholders and are removed before routing and execution; numeric zero is preserved. Blank optional file fields use the documented sample files. A missing-input response contains the same template so users can complete it without opening the source code. Known field types are validated before business tools execute. Clarification exceptions produce a `needs_input` step status; quota failures produce `rate_limited`, while unexpected/permanent tool failures remain `error`.
 
 `POST /api/prepare` accepts the same request/inputs as `/api/run`, but only identifies the workflow and returns its fields. It does not execute business tools or create a workflow run. In live mode it consumes a Gemini routing request; choosing a known template in the dropdown makes no LLM request. Run still selects the workflow from the user's request independently of the template choice.
 
@@ -137,7 +137,7 @@ Google API reference: https://ai.google.dev/gemini-api/docs/openai
 ## Repository contents
 
 ```text
-agent/                  shared runtime, LLM adapter, registered tools, CLI, local UI
+agent/                  shared runtime, LLM adapter, tools, CLI, local UI and reusable form renderer
 data/workflows.xlsx     original provided workbook including Test_Questions
 data/definitions.json   reviewed executable bindings for all ten workflows
 data/                   synthetic CSV/JSON API and input fixtures
@@ -151,7 +151,7 @@ docs/                   source interpretation, explanation and Loom guide
 
 ## Validation status
 
-All ten provided test requests succeeded in offline mode. **69 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
+All ten provided test requests succeeded in offline mode. **74 unit tests passed**, including strict thresholds, missing inputs, malformed data, unknown orders, shipment absence, duplicates, classifier validation, escalation, retry behaviour, path protection, source drift, live function-call contract mocks and an eleventh-workflow extension. The local HTTP endpoints were also smoke tested. Gemini endpoint/authentication/model selection, malformed extraction, empty completions and rate limits are covered with transport mocks. Live Gemini calls require your own key and must be run before recording/submission; mocked tests are not a substitute for this.
 
 ## Submission
 

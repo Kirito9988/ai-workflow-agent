@@ -48,7 +48,7 @@ class AgentTests(unittest.TestCase):
 
     def test_invalid_stock(self):
         for value in [-1, "bad", "NaN", "Infinity"]:
-            self.assertEqual(self.run_example(1, {"minimum_stock": value})["status"], "error")
+            self.assertEqual(self.run_example(1, {"minimum_stock": value})["status"], "needs_input")
 
     def test_prices_boundary_and_zero_and_unmatched(self):
         r = self.run_example(2)["result"]["products"]
@@ -456,6 +456,34 @@ class AgentTests(unittest.TestCase):
     def test_prepare_unknown_request_and_bad_inputs(self):
         self.assertEqual(self.engine.prepare("What is the weather?")["status"], "needs_input")
         self.assertEqual(self.engine.prepare("restock", ["bad"])["status"], "error")
+
+    def test_form_metadata_exposes_types_and_alternative_required_fields(self):
+        self.assertEqual(self.engine.input_guide("WF005")["required_any"], [["order_id", "customer_email"]])
+        self.assertEqual(self.engine.input_guide("WF001")["input_types"]["minimum_stock"], "number")
+        self.assertEqual(self.engine.input_guide("WF008")["input_types"]["categories"], "object")
+
+    def test_invalid_product_field_type_requests_correction_before_tools(self):
+        r = self.run_example(4, {"product_name": 42})
+        self.assertEqual(r["status"], "needs_input")
+        self.assertEqual(r["message"], "product_name must be text")
+        self.assertEqual(r["steps"], [])
+
+    def test_invalid_skill_list_requests_correction_before_tools(self):
+        r = self.run_example(9, {"required_skills": "python,api"})
+        self.assertEqual(r["status"], "needs_input")
+        self.assertIn("array", r["message"])
+        self.assertEqual(r["steps"], [])
+
+    def test_unknown_order_step_is_clarification_not_error(self):
+        r = self.engine.run("Where is order ORD-9999?")
+        self.assertEqual(r["status"], "needs_input")
+        self.assertEqual(r["steps"][-1]["status"], "needs_input")
+
+    def test_order_without_either_identifier_stops_before_lookup(self):
+        r = self.engine.run("Check order status", {"order_id": "", "customer_email": ""})
+        self.assertEqual(r["status"], "needs_input")
+        self.assertIn("at least one", r["message"])
+        self.assertEqual(r["steps"], [])
 
 
 if __name__ == "__main__":

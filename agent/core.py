@@ -130,7 +130,35 @@ class Engine:
         return {"input_template": {**definition.get("input_template", {}), **clean_inputs(values)},
                 "input_help": definition.get("input_help", {}),
                 "required_fields": definition.get("required", []),
+                "required_any": definition.get("required_any", []),
+                "input_types": {k: "number" if v is None else "array" if isinstance(v, list) else "object" if isinstance(v, dict) else "string"
+                                for k, v in definition.get("input_template", {}).items()},
                 "input_note": definition.get("input_note", "")}
+
+    def validate_inputs(self, definition, inputs):
+        for field, template in definition.get("input_template", {}).items():
+            if field not in inputs:
+                continue
+            value = inputs[field]
+            if template is None:
+                if isinstance(value, bool):
+                    raise Clarification(f"{field} must be a number")
+                try:
+                    inputs[field] = number(value, field)
+                except WorkflowError as exc:
+                    raise Clarification(str(exc)) from None
+            elif isinstance(template, str) and not isinstance(value, str):
+                raise Clarification(f"{field} must be text")
+            elif isinstance(template, list) and (not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value)):
+                raise Clarification(f"{field} must be an array of nonempty text values")
+            elif isinstance(template, dict) and (not isinstance(value, dict) or not all(isinstance(k, str) and k.strip() and isinstance(v, list) and v and all(isinstance(t, str) and t.strip() for t in v) for k, v in value.items())):
+                raise Clarification(f"{field} must map names to nonempty arrays of text values")
+        missing = [key for key in definition.get("required", []) if key not in inputs]
+        if missing:
+            raise Clarification("Please provide: " + ", ".join(missing))
+        for group in definition.get("required_any", []):
+            if not any(key in inputs for key in group):
+                raise Clarification("Please provide at least one: " + " or ".join(group))
 
     def prepare(self, request, inputs=None):
         """Identify intent and show input fields without executing business tools."""
@@ -188,9 +216,7 @@ class Engine:
             # Explicit inputs win over inferred values; never populate missing business inputs from fixtures.
             merged = {**clean_inputs(extracted), **inputs}
             result.update(self.input_guide(wid, merged))
-            missing = [key for key in definition.get("required", []) if merged.get(key) in (None, "", [], {})]
-            if missing:
-                raise Clarification("Please provide: " + ", ".join(missing))
+            self.validate_inputs(definition, merged)
             ctx = Context(merged, self.backend, self.data_dir, run_dir)
             for step in definition["steps"]:
                 when = step.get("when")
@@ -212,6 +238,12 @@ class Engine:
                             time.sleep(.05 * 2 ** attempt)
                     ctx.state[step["save_as"]] = out
                     entry.update(status="success", output=out)
+                except Clarification:
+                    entry["status"] = "needs_input"
+                    raise
+                except QuotaError:
+                    entry["status"] = "rate_limited"
+                    raise
                 except Exception:
                     entry["status"] = "error"
                     raise

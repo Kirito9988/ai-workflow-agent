@@ -217,7 +217,7 @@
     "input_help": {
       "product_name": "Required product name.",
       "category": "Optional category, for example Clothing.",
-      "attributes": "Array of known features, for example [\"round neck\", \"short sleeves\"].",
+      "attributes": "Known product features; enter one item per line.",
       "material": "Known material only; leave blank if unknown.",
       "color": "Known color only; leave blank if unknown.",
       "target_audience": "Intended customers, for example adults."
@@ -283,7 +283,13 @@
       "order_id": "Order ID such as ORD-1001.",
       "customer_email": "Customer email; may return multiple matching orders."
     },
-    "input_note": "Provide at least one identifier: order_id OR customer_email. You can also include it in your request."
+    "input_note": "Provide at least one identifier: order_id OR customer_email. You can also include it in your request.",
+    "required_any": [
+      [
+        "order_id",
+        "customer_email"
+      ]
+    ]
   },
   "WF006": {
     "source": {
@@ -384,7 +390,7 @@
     "input_help": {
       "campaign_goal": "Required campaign objective.",
       "dates": "Required campaign date or date range, for example 2026-10-15 to 2026-10-21.",
-      "products": "Array of product names, for example [\"Cotton T-shirt\"].",
+      "products": "Product names; enter one item per line.",
       "target_audience": "Intended audience.",
       "promotion": "Known offer; leave blank if none is provided."
     },
@@ -451,7 +457,7 @@
     },
     "input_help": {
       "file": "Keyword CSV in data/ with a keyword column. Blank uses keywords.csv.",
-      "categories": "Required category-to-term mapping, for example {\"clothing\":[\"shirt\",\"cotton\"],\"home\":[\"mug\"]}."
+      "categories": "Add category names and matching terms. Example: category clothing, matching terms shirt and cotton."
     },
     "input_note": "Enter your category mapping. The agent will classify keywords and suggest relative website pages."
   },
@@ -515,7 +521,7 @@
     "input_help": {
       "file": "Employee CSV in data/. Blank uses employees.csv.",
       "task_description": "Required description of the work.",
-      "required_skills": "Required array, for example [\"python\",\"api\"].",
+      "required_skills": "Required skills; enter one item per line.",
       "priority": "Required priority, for example urgent.",
       "deadline": "Required deadline, for example 2026-10-14."
     },
